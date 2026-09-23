@@ -89,9 +89,9 @@ check_embed() {
 
 	body=$(curl "${CURL_OPTS[@]}" "${site}/wp-json/wp/v2/posts?per_page=1&_embed=author" 2>/dev/null)
 
-	if printf '%s' "$body" | /usr/bin/grep -q '"rest_forbidden"'; then
+	if printf '%s' "$body" | grep -q '"rest_forbidden"'; then
 		record pass "_embed=author" "embedded author refused"
-	elif printf '%s' "$body" | /usr/bin/grep -q '"_embedded"'; then
+	elif printf '%s' "$body" | grep -q '"_embedded"'; then
 		record fail "_embed=author" "embedded author resolved; inspect the response"
 	else
 		record pass "_embed=author" "no embedded author in response"
@@ -111,7 +111,7 @@ check_sitemap() {
 
 	if [ -z "$index" ]; then
 		record warn "sitemap index" "no readable sitemap index; check it by hand"
-	elif printf '%s' "$index" | /usr/bin/grep -qi 'sitemap-users\|author'; then
+	elif printf '%s' "$index" | grep -qi 'sitemap-users\|author'; then
 		record fail "sitemap index" "still lists a users or author sitemap"
 	else
 		record pass "sitemap index" "no users sitemap listed"
@@ -142,7 +142,7 @@ check_author_query() {
 	code="${got%% *}"
 	location="${got#* }"
 
-	if [ "$code" = "301" ] && [ -n "$location" ] && ! printf '%s' "$location" | /usr/bin/grep -qi '/author/'; then
+	if [ "$code" = "301" ] && [ -n "$location" ] && ! printf '%s' "$location" | grep -qi '/author/'; then
 		record pass "/?author=1" "301 -> ${location}"
 	else
 		record fail "/?author=1" "want 301 away from /author/, got ${code} ${location}"
@@ -155,15 +155,15 @@ check_oembed() {
 
 	# PHP escapes forward slashes in JSON by default, so author_url arrives as
 	# https:\/\/host\/author\/slug\/ and an unescaped match silently passes.
-	body=$(curl "${CURL_OPTS[@]}" "${site}/wp-json/oembed/1.0/embed?url=${site}/" 2>/dev/null | /usr/bin/sed 's|\\/|/|g')
-	author_name=$(printf '%s' "$body" | /usr/bin/sed -n 's/.*"author_name":"\([^"]*\)".*/\1/p')
-	author_url=$(printf '%s' "$body" | /usr/bin/sed -n 's/.*"author_url":"\([^"]*\)".*/\1/p')
+	body=$(curl "${CURL_OPTS[@]}" "${site}/wp-json/oembed/1.0/embed?url=${site}/" 2>/dev/null | sed 's|\\/|/|g')
+	author_name=$(printf '%s' "$body" | sed -n 's/.*"author_name":"\([^"]*\)".*/\1/p')
+	author_url=$(printf '%s' "$body" | sed -n 's/.*"author_url":"\([^"]*\)".*/\1/p')
 
 	if [ -z "$body" ]; then
 		record fail "oembed author fields" "no response"
 	elif [ -z "$author_url" ]; then
 		record fail "oembed author fields" "no author_url in response; inspect it"
-	elif printf '%s' "$author_url" | /usr/bin/grep -qi '/author/'; then
+	elif printf '%s' "$author_url" | grep -qi '/author/'; then
 		record fail "oembed author fields" "author_url is an author archive: ${author_url}"
 	else
 		record pass "oembed author fields" "author_name=${author_name:-<absent>} author_url=${author_url}"
