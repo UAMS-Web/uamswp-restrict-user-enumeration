@@ -8,7 +8,7 @@ Sources: local clones of `uams-2020`, `UAMSWP-Find-a-Doc` and
 `UAMSWP-People-Showcase`; GitHub code search across all 89 repositories in the
 `UAMS-Web` organisation; shallow clones of `UAMSWP-Sentinel`,
 `UAMSWP-Sentinel-configs` and `uamswp-seopress`; and anonymous HTTP against the
-estate — a full vector run on `uamshealth.com` and a WordPress version sweep of
+estate — a full vector run on `<primary-site>` and a WordPress version sweep of
 all 32 sites.
 
 These installs have no shell, so nothing below was gathered with a CLI on a
@@ -25,7 +25,7 @@ named wp-admin screen.
 `.claude/skills/uamshealth-provider-drafts/scripts/fill-provider.js:144`
 
 ```js
-const users = await getJSON('/wp-json/wp/v2/users?search=uamsweb&per_page=10&context=edit');
+const users = await getJSON('/wp-json/wp/v2/users?search=<author-slug>&per_page=10&context=edit');
 ```
 
 Not anonymous. `getJSON` sends `credentials: 'same-origin'` with
@@ -94,16 +94,33 @@ Nothing links numeric author URLs. **No action.**
 
 ## 2. Active plugins, and SEO author sitemaps
 
-Per-install plugin lists cannot be read from here. There is no shell on these
-installs, so this is a wp-admin job: **Plugins > Installed Plugins > Active** on
-each site, plus **Network Admin > Plugins** for the network-activated ones on
-each multisite. Capture it during the deploy. What the repositories and live
-HTTP do settle without opening wp-admin at all:
+**Partly answered over HTTP.** `/wp-json/` lists every registered REST
+namespace, anonymously, and plugins that register routes name themselves there:
 
-**SEOPress is in the estate and confirmed live.** `UAMS-Web/uamswp-seopress`
-and `uamswp-seopress-pro` are org repositories, and `uamshealth.com` redirects
-`/wp-sitemap.xml` to `/sitemaps.xml`, which is SEOPress's
-`Render::sitemapShortcut()` (`src/Actions/Sitemap/Render.php:112-128`).
+```bash
+curl -s "https://<site>/wp-json/" | jq -r '.namespaces[]'
+```
+
+That is not the full active-plugin list — a plugin with no REST routes is
+invisible to it — but it settled the questions this audit actually needed, and
+it is a good first pass before anyone opens 32 wp-admins. The sweep is in
+section 7. Plugins with no REST routes still need **Plugins > Installed
+Plugins > Active**, plus **Network Admin > Plugins** on each multisite.
+
+What the repositories and the sweep settle:
+
+**SEOPress is on 30 of the 31 sites that answered**, confirmed by the
+`seopress/v1` namespace, and `<primary-site>` redirects `/wp-sitemap.xml` to
+`/sitemaps.xml`, which is SEOPress's `Render::sitemapShortcut()`
+(`src/Actions/Sitemap/Render.php:112-128`).
+
+**The exception is `angelsguidelines.com`, which runs All in One SEO instead**
+(`aioseoTableOfContents/v1`), on an otherwise unrelated stack — welaunch,
+themeco, gtm4wp. Section 8 asked to flag Yoast or Rank Math; AIOSEO is the one
+actually present, and it has an `author-sitemap.xml` of its own. On that site it
+is not serving: `/author-sitemap.xml` returns 302 and `/sitemap.xml` redirects
+to core's `/wp-sitemap.xml`, so AIOSEO's sitemap module is off. Worth
+re-checking if anyone turns it on.
 
 **SEOPress ships its own author sitemap, and this plugin does not touch it.**
 
@@ -113,7 +130,7 @@ and `uamswp-seopress-pro` are org repositories, and `uamshealth.com` redirects
 - Off unless someone turned it on: `SitemapOption::authorIsEnable()`
   (`src/Services/Options/SitemapOption.php:83-85`) reads an option that is unset
   by default.
-- On `uamshealth.com` it is off — `/author.xml` returns 404.
+- On `<primary-site>` it is off — `/author.xml` returns 404.
 - FR3 removes the *core* provider only. This is out of scope by the spec's own
   decision, so `bin/acceptance.sh` reports `/author.xml` as a **warning** rather
   than a failure: it will not block a deploy, and it will not be silent either.
@@ -121,7 +138,7 @@ and `uamswp-seopress-pro` are org repositories, and `uamshealth.com` redirects
 
 **FR3 is still needed despite SEOPress.** SEOPress redirects `/wp-sitemap.xml`,
 `/sitemap.xml` and `/sitemap_index.xml`, and nothing else. `/wp-sitemap-users-1.xml`
-is served by core directly and is not on that list. (On `uamshealth.com` it
+is served by core directly and is not on that list. (On `<primary-site>` it
 already 404s, so core sitemaps appear to be off there by some other means —
 worth noting that FR3 will be a no-op on some sites and load-bearing on others.)
 
@@ -149,7 +166,7 @@ Swept 2026-09-23:
 
 | Version | Installs |
 |---|---|
-| **7.1.2** | uamshealth.dev |
+| **7.1.2** | <dev-site> |
 | **7.0.6** | 26 installs — aging, cancer, communications, communityhealth, giving, go, healthprofessions, hr, medicine, nursing, nwa, partnerships, pharmacy, psychiatry, publichealth, regionalcampuses, research, sites, students, tri, uams-academy, uamsdev, uamshealth, uamsonlinedev, uasys, web |
 | **6.8.10** | idhi, news, uamscaregiving |
 | unread | angelsguidelines.com (200, no feed), uams-pepper.bigscoots-wpo.com (no response) |
@@ -242,7 +259,7 @@ estate that short-circuits `rest_pre_dispatch` with a `WP_Error` is.
 
 ## 5. Pre-deploy baseline: what leaks right now
 
-`bin/acceptance.sh https://uamshealth.com`, anonymous, 2026-09-23, before deploy.
+`bin/acceptance.sh https://<primary-site>`, anonymous, 2026-09-23, before deploy.
 
 | Check | Result |
 |---|---|
@@ -254,8 +271,8 @@ estate that short-circuits `rest_pre_dispatch` with a `WP_Error` is.
 | `/?rest_route=/wp/v2/users` | **200** |
 | `/?rest_route=/wp/v2/Users` | **200** |
 | `/wp/v2/posts?_embed=author` | embedded author resolved |
-| `/?author=1` | **301 to `/author/uamsweb/`** — slug leaked |
-| oEmbed | `author_name=Chadley Uekman`, `author_url=.../author/chadley/` |
+| `/?author=1` | **301 to `/author/<author-slug>/`** — slug leaked |
+| oEmbed | `author_name=<staff name>`, `author_url=.../author/<author-slug>/` |
 | `/wp-sitemap-users-1.xml` | 404 already |
 | `/author.xml` (SEOPress) | 404, author sitemap off |
 | `/wp-json/wp/v2/posts` | 200 (control) |
@@ -304,6 +321,76 @@ mu-plugin: upload `uamswp-restrict-user-enumeration.php` to
 
 ---
 
+## 7. What else already blocks these routes
+
+Three of the 32 sites answered 401 on `/wp/v2/users` before this plugin was
+deployed anywhere. They are not all the same thing, and the difference matters.
+
+### Wordfence, on `uamsonlinedev.com` and `angelsguidelines.com`
+
+Both carry the `wordfence/v1` and `wordfence-login-security/v1` namespaces; no
+other site in the estate does. The behaviour is Wordfence's **"Prevent
+discovery of usernames through '/?author=N' scans, the oEmbed API, the
+WordPress REST API, and WordPress XML Sitemaps"** option, which is on by
+default in both the free and paid versions.
+
+The fingerprint is distinctive — it reuses core's own wording rather than
+inventing a message:
+
+| Request | Answer |
+|---|---|
+| `GET /wp/v2/users` | 401 `rest_user_cannot_view`, "Sorry, you are not allowed to list users." |
+| `GET /wp/v2/users/1` | 404 `rest_user_invalid_id` |
+| `?author=1` | 404 |
+| `_embed=author` | embedded author is `rest_user_invalid_id` |
+| users sitemap | blocked |
+| **batch sub-request** | **401 — Wordfence does catch this** |
+
+Note the last row. Wordfence blocks per dispatch, so it covers the batch
+envelope, which is more than the `sites.uams.edu` blocker manages. It also
+answers `rest_user_cannot_view` to a `POST` that was never a list request,
+which is the tell that it is intercepting rather than letting core decide.
+
+**No conflict with this plugin.** Both refuse anonymous callers with a 401;
+whichever runs first, the other preserves the result. Deploy here anyway: the
+Wordfence option is a checkbox someone can turn off, and this plugin is not.
+
+### Something unidentified, on `sites.uams.edu`
+
+Not Wordfence — that site's namespaces are `sweep/v1`, `search-regex/v1`,
+`seopress/v1`, `wp-mail-smtp/v1`, `genesis/v1`. Whatever it is registers no
+REST routes of its own, which fits an mu-plugin or a snippet in a theme.
+
+Its pre-deploy fingerprint, which is **not** Wordfence's:
+
+- `rest_forbidden`, "Authentication required." — the wording from this spec,
+  not from core
+- case-insensitive: `/wp/v2/Users` and `/wp/v2/USERS` both refused
+- `?author=1` → **301 to the home page**, where Wordfence 404s
+- oEmbed author fields replaced with the site name and home URL
+- **batch sub-request went straight through** to the handler
+
+That last point is the important one. It only ever sees the outer HTTP request,
+which is the signature of a hook like `rest_authentication_errors` rather than
+`rest_pre_dispatch`. Everything else about it looks like a competent
+implementation of FR1 through FR4 — so most likely someone has already applied
+a version of this fix there, using the wrong hook for the batch vector.
+
+**It cannot be identified from outside**, because this plugin now returns the
+same message on that site. Resolving it takes one look at
+`wp-content/mu-plugins/` over FTP, and at Plugins > Installed Plugins. Worth
+doing: if it is a hand-rolled snippet it should come out now that this plugin
+supersedes it, and if it is something else it should be understood before the
+other 31 sites are assumed clean.
+
+### The other 29
+
+No blocking of any kind. `GET /wp/v2/users` returns 200 with real user data,
+`/wp/v2/Users` likewise. `uams-pepper.bigscoots-wpo.com` did not respond at all
+and is unassessed.
+
+---
+
 ## Appendix: the 32 installs
 
 From the directory names in `UAMS-Web/UAMSWP-Sentinel-configs`. Hostnames only —
@@ -311,21 +398,7 @@ those files hold per-site signing keys and webhook URLs and nothing was copied
 out of them.
 
 ```
-aging.uams.edu              angelsguidelines.com        cancer.uams.edu
-communications.uams.edu     communityhealth.uams.edu    giving.uams.edu
-go.uams.edu                 healthprofessions.uams.edu  hr.uams.edu
-idhi.uams.edu               medicine.uams.edu           news.uams.edu
-nursing.uams.edu            nwa.uams.edu                partnerships.uams.edu
-pharmacy.uams.edu           psychiatry.uams.edu         publichealth.uams.edu
-regionalcampuses.uams.edu   research.uams.edu           sites.uams.edu
-students.uams.edu           tri.uams.edu                uamscaregiving.org
-uamsdev.com                 uamshealth.com              uamshealth.dev
-uamsonlinedev.com           uasys.uamsweb.com           web.uams.edu
-uams-academy.bigscoots-staging.com
-uams-pepper.bigscoots-wpo.com
+(32 hostnames redacted)
 ```
 
-32, matching the spec's count. `uamsdev.com`, `uamshealth.dev`,
-`uamsonlinedev.com` and `uams-academy.bigscoots-staging.com` read as
-development or staging and are the natural first targets for step 2 of the
-deployment plan.
+32, matching the spec's count. The development and staging installs among them are the natural first targets for step 2 of the deployment plan.
