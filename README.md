@@ -64,16 +64,36 @@ laptop, not the server.
 
 ## Rollback
 
-Two ways, either of which is immediate:
+**Delete the file.** On this estate that is the primary route, not the fallback:
+BigScoots does not let us edit `wp-config.php` (the UAMS Sentinel loader says so
+in its own header, which is why Sentinel reads its constants from a file in
+`mu-plugins` instead).
+
+The kill switch still works, it just needs somewhere to live. Any mu-plugin that
+loads before this one can define it, and `wp_get_mu_plugins()` **sorts** the
+directory, so a leading digit guarantees the order. Drop in
+`0-uamswp-rue-disable.php`:
 
 ```php
-// wp-config.php
+<?php
+// Loads before uamswp-restrict-user-enumeration.php because mu-plugins are
+// loaded in sorted order, so the constant is set before the plugin reads it.
 define( 'UAMSWP_RUE_DISABLE', true );
 ```
 
-or delete the file. With the constant set the plugin registers no hooks at all
-— not a partial rollback, and the kill-switch test suite asserts all four
-vectors come back.
+Delete that file to switch the plugin back on. It is worth preferring over
+deleting the plugin when you want the code to stay put and auditable — during a
+soak, say, or while proving that something else is the cause of a problem.
+
+Where `wp-config.php` *is* editable, the constant goes there as normal.
+
+Either way it is all or nothing: with the constant set the plugin registers no
+hooks at all, and the kill-switch suite asserts all four vectors come back.
+
+Do not add the `define()` to `uams-sentinel-config.php`. It would work — that
+file loads earlier — but Sentinel's own generator refuses to overwrite it and
+its repo tells you never to regenerate it, so borrowing it couples two unrelated
+rollbacks together.
 
 ## Extending
 
