@@ -119,7 +119,7 @@ add_filter( 'rest_pre_dispatch', function ( $result, $server, $request ) {
 
 **Version Information:**
  - WordPress Version: observed on 7.0.6; the affected core code (`WP_REST_Server::dispatch()`) is unchanged across 6.4 through 7.1
- - PHP Version: 8.1+
+ - PHP Version: 8.2.30
  - ACF Version: ACF PRO 6.4.2 (observed); identical code in ACF Free 6.4.3
  - Browser: not applicable, reproduced with curl
 
