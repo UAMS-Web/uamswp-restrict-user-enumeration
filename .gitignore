@@ -1,0 +1,8 @@
+/vendor/
+/composer.lock
+.phpcs.cache
+.phpunit.result.cache
+/phpunit.xml
+/phpunit-killswitch.xml
+/phpcs.xml
+.DS_Store
