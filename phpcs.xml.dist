@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<ruleset name="UAMSWP Restrict User Enumeration">
+	<description>WordPress Coding Standards for the shipped plugin file.</description>
+
+	<!-- Only the file that actually goes on the servers. -->
+	<file>uamswp-restrict-user-enumeration.php</file>
+
+	<arg name="extensions" value="php"/>
+	<arg name="colors"/>
+	<arg value="sp"/>
+
+	<rule ref="WordPress"/>
+
+	<!--
+		Nothing here is translated: it is a single-file mu-plugin with no
+		language files, and the one string a visitor can see is a REST error
+		code's message.
+	-->
+	<rule ref="WordPress.WP.I18n">
+		<severity>0</severity>
+	</rule>
+
+	<config name="minimum_wp_version" value="5.5"/>
+	<config name="testVersion" value="7.0-"/>
+	<rule ref="PHPCompatibilityWP"/>
+</ruleset>

@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<phpunit
+	bootstrap="tests/bootstrap.php"
+	backupGlobals="false"
+	colors="true"
+	convertErrorsToExceptions="true"
+	convertNoticesToExceptions="true"
+	convertWarningsToExceptions="true"
+	beStrictAboutTestsThatDoNotTestAnything="true"
+	>
+	<testsuites>
+		<testsuite name="uamswp-restrict-user-enumeration">
+			<directory prefix="test-" suffix=".php">./tests</directory>
+			<exclude>./tests/killswitch</exclude>
+		</testsuite>
+	</testsuites>
+</phpunit>
