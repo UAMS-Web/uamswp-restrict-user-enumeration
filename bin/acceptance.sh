@@ -6,6 +6,10 @@
 # credentials and no cookies, which is the whole point: it checks what a
 # stranger gets.
 #
+# All GETs but one. check_batch sends a POST to /wp-json/batch/v1, because that
+# is the only vector that distinguishes this plugin from something else that
+# answers 401 on the plain URLs. It creates nothing; see the note above it.
+#
 #   bin/acceptance.sh https://example.uams.edu
 #   bin/acceptance.sh -f sites.txt          # one origin per line, # for comments
 #
@@ -80,6 +84,52 @@ check_rest() {
 	expect_status "$site" "/wp-json/wp/v2/users/" 401
 	expect_status "$site" "/?rest_route=/wp/v2/users" 401
 	expect_status "$site" "/?rest_route=/wp/v2/Users" 401
+}
+
+# The batch envelope is the one vector a per-request check cannot see. A hook
+# like rest_authentication_errors fires once, against the outer /batch/v1
+# request, so a users sub-request sitting in the POST body goes through
+# untouched. Only a per-dispatch check (rest_pre_dispatch, which is what this
+# plugin uses) refuses it.
+#
+# That makes this the check that says whether THIS plugin is loaded, rather than
+# something else that happens to answer 401 on the plain URLs. On a site with a
+# pre-existing blocker every other check here passes either way; this one does
+# not.
+#
+# It is the only request in this script that is not a GET, and it creates
+# nothing: the sub-request carries no body, it is refused before the handler
+# runs, and core requires create_users regardless.
+check_batch() {
+	local site="$1" out code body
+
+	out=$(curl "${CURL_OPTS[@]}" -w '\nHTTPSTATUS:%{http_code}' \
+		-X POST "${site}/wp-json/batch/v1" \
+		-H 'Content-Type: application/json' \
+		-d '{"requests":[{"method":"POST","path":"/wp/v2/users"}]}' 2>/dev/null)
+	code="${out##*HTTPSTATUS:}"
+	body="${out%%HTTPSTATUS:*}"
+
+	case "$code" in
+		404)
+			# /batch/v1 arrived in WP 5.6. Nothing to close on older cores.
+			record warn "batch /wp/v2/users" "no /batch/v1 endpoint (WordPress older than 5.6)"
+			;;
+		5*)
+			# A WP_Error returned from rest_pre_dispatch is a TypeError here on
+			# WP 7.0+. See the README, "Deviations from the spec".
+			record fail "batch /wp/v2/users" "HTTP ${code}: fatal in the batch handler, not a 401"
+			;;
+		*)
+			if printf '%s' "$body" | grep -q '"rest_forbidden"'; then
+				record pass "batch /wp/v2/users" "sub-request refused 401"
+			elif printf '%s' "$body" | grep -q '"rest_missing_callback_param"'; then
+				record fail "batch /wp/v2/users" "sub-request reached the handler: this plugin is not loaded"
+			else
+				record fail "batch /wp/v2/users" "unexpected ${code}: $(printf '%s' "$body" | head -c 120)"
+			fi
+			;;
+	esac
 }
 
 # Nothing identifying an author may appear in a posts response a stranger can
@@ -199,6 +249,7 @@ check_site() {
 	printf '\n%s\n' "$site"
 	check_canonical_host "$site" || true
 	check_rest "$site"
+	check_batch "$site"
 	check_embed "$site"
 	check_sitemap "$site"
 	check_seo_author_sitemap "$site"
