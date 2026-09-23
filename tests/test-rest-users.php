@@ -259,6 +259,40 @@ class Test_UAMSWP_RUE_Rest_Users extends WP_Test_REST_TestCase {
 	}
 
 	/**
+	 * T7, as an anonymous prober actually sends it: no sub-request body.
+	 *
+	 * The batch handler validates sub-requests before it dispatches them, so a
+	 * bodyless POST to /wp/v2/users has a pending rest_missing_callback_param
+	 * error waiting for it. rest_pre_dispatch still runs first and still wins,
+	 * and the difference is diagnostic: 401 means the block is on the dispatch
+	 * of each sub-request, 400 means whatever is blocking only ever saw the
+	 * outer /batch/v1 request and the users route went through untouched.
+	 */
+	public function test_bodyless_users_request_inside_a_batch_is_refused() {
+		$request = new WP_REST_Request( 'POST', '/batch/v1' );
+		$request->set_body_params(
+			array(
+				'requests' => array(
+					array(
+						'method' => 'POST',
+						'path'   => '/wp/v2/users',
+					),
+				),
+			)
+		);
+
+		$data = rest_get_server()->dispatch( $request )->get_data();
+
+		$this->assertSame( 401, $data['responses'][0]['status'] );
+		$this->assertSame( 'rest_forbidden', $data['responses'][0]['body']['code'] );
+		$this->assertNotSame(
+			'rest_missing_callback_param',
+			$data['responses'][0]['body']['code'],
+			'The sub-request reached parameter validation, so it was never blocked.'
+		);
+	}
+
+	/**
 	 * T7, basis: why the test above is a POST.
 	 *
 	 * Documents the constraint rather than assuming it. If core ever widens the
