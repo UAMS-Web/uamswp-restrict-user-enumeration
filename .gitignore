@@ -6,3 +6,10 @@
 /phpunit-killswitch.xml
 /phpcs.xml
 .DS_Store
+
+# Site lists for bin/acceptance.sh. Kept out on purpose: the estate inventory
+# does not need another copy, and a list named after whatever it was gathered
+# for ("not-yet-deployed.txt") says more than the hostnames do.
+sites.txt
+sites-*.txt
+*.sites.txt
