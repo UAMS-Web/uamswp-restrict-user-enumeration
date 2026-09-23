@@ -128,9 +128,24 @@ bin/acceptance.sh https://one-site.uams.edu
 bin/acceptance.sh -f sites.txt          # one origin per line
 ```
 
-Anonymous, read-only, no cookies. Exits non-zero if anything fails, so it goes
-straight into a monitor. Run it against the **canonical** origin; it warns if
-the host redirects, because a wall of 301s says nothing about the plugin.
+Anonymous, no cookies. Exits non-zero if anything fails, so it goes straight
+into a monitor. Run it against the **canonical** origin; it warns if the host
+redirects, because a wall of 301s says nothing about the plugin.
+
+Every check is a GET except `check_batch`, which POSTs a users sub-request to
+`/wp-json/batch/v1`. That one earns its exception: it is the only check that
+says whether **this** plugin is loaded. A site may already have something that
+answers 401 on the plain users URLs — `sites.uams.edu` did — and every other
+check passes either way. Those blockers hook once per HTTP request, so they
+only ever see the outer `/batch/v1` route and the users sub-request in the body
+goes through untouched. `rest_pre_dispatch` runs per sub-request and catches it.
+
+    401 rest_forbidden             loaded, blocking at dispatch
+    400 rest_missing_callback_param  not loaded; something else answered the plain URLs
+    500                            the WP 7.0+ fatal, see below
+
+It creates nothing: the sub-request carries no body, it is refused before the
+handler runs, and core requires `create_users` regardless.
 
 Then open a post in the block editor as an Editor and confirm the Author
 dropdown still populates. That is the one thing the automated tests cover but
