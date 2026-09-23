@@ -1,10 +1,90 @@
 # Bug report: ACF discards the rest_pre_dispatch filter value
 
-Shaped to ACF's required issue template (`blank_issues_enabled: false`).
-File at https://github.com/AdvancedCustomFields/acf/issues/new?template=acf-bug-report.md
+**Status: filed as [#1040](https://github.com/AdvancedCustomFields/acf/issues/1040),
+then closed as a duplicate of [#1000](https://github.com/AdvancedCustomFields/acf/issues/1000).**
+The live contribution is a comment on #1000. The report below is kept as our own
+record of what was found and how.
 
-Contains no site names, hostnames or usernames: it is a public report about
-ACF, and which of our sites were affected is not WP Engine's business.
+The tracker was not searched before drafting, which it should have been. #1000
+predates this by seven months (2026-02-27) and [#988](https://github.com/AdvancedCustomFields/acf/issues/988)
+reports the same root cause from 2025-11-07. One API call would have found them.
+
+Nothing here carries site names, hostnames or usernames: it is a public report
+about ACF, and which of our sites were affected is not WP Engine's business.
+
+---
+
+## Closing note for #1040
+
+Duplicate of #1000, which reports the same defect with the same suggested fix, and predates this by seven months. Also overlaps #988.
+
+Closing in favour of #1000 and moving the corroborating detail there as a comment, rather than leaving a third open issue for maintainers to reconcile. Apologies for the noise — I should have searched the tracker before opening this.
+
+---
+
+## Comment for #1000
+
+Corroborating from a third production estate, with a consequence class not yet represented in this thread and a workaround that does not depend on priority.
+
+**What it cost us.** A must-use plugin refusing unauthenticated access to `/wp/v2/users`. It was installed, loaded, correctly registered and demonstrably running — its three non-REST hooks all worked — while the endpoint it exists to close kept answering `200` with the full staff list: logins, display names mapping people to departments, and paginated, so `?per_page=100&page=N` walks the whole directory. Unauthenticated PII exposure rather than a rate limiter going quiet, but the same silent-failure shape: nothing logged, nothing to notice, and every other part of the plugin visibly healthy.
+
+That last detail is what made it hard. Because ACF touches only `rest_pre_dispatch`, the plugin's other three hooks (`template_redirect`, `oembed_response_data`, `wp_sitemaps_add_provider`) all behaved correctly. Three of four requirements passing is a very convincing picture of a working deployment.
+
+**Extends the affected range downward.** This thread reports 6.7.0.2 and 6.8.5/6.8.9. We hit it on **ACF PRO 6.4.2**, and `initialize()` is byte-identical in **ACF Free 6.4.3**. Together with the comment above, that is at least 6.4 → 6.8.9, free and PRO, unchanged throughout.
+
+**Diagnosis, in case it saves anyone else the time.** Elimination against installed plugins got nowhere; what settled it in one request was dumping the chain from a temporary mu-plugin that registered its responder from inside `rest_api_init`, late enough to survive:
+
+```
+10  <our callback>              <- returns the 401
+10  ACF_Rest_Api::initialize    <- discards it
+10  <three others>
+11  <another plugin's gate>     <- unaffected, runs after ACF
+```
+
+The plugin at priority 11 on the same site worked correctly throughout, which is the tell: whether a gate works depends only on whether it registered before or after ACF.
+
+**On the priority-99 workaround.** Agreed that it is fragile, and for a security control that fragility is the whole problem — it trades one ordering assumption for another. What we settled on is two gates, the second of which is not a filter chain and so has nothing to discard:
+
+```php
+// Gate 1: after anything registered normally.
+add_filter( 'rest_pre_dispatch', 'my_block_callback', PHP_INT_MAX, 3 );
+
+// Gate 2: the route's own permission callback. Not a chain, so no later
+// callback can drop it. Covers /batch/v1 sub-requests and the sub-requests
+// _embed makes, since both run respond_to_request().
+add_filter( 'rest_endpoints', function ( $endpoints ) {
+	foreach ( $endpoints as $route => $handlers ) {
+		if ( ! is_array( $handlers ) || ! my_route_matches( $route ) ) {
+			continue;
+		}
+		foreach ( $handlers as $i => $handler ) {
+			// Skips the route-level siblings register_rest_route() leaves
+			// alongside the method handlers: allow_batch, schema, namespace.
+			if ( ! is_array( $handler ) || ! array_key_exists( 'permission_callback', $handler ) ) {
+				continue;
+			}
+			$original = $handler['permission_callback'];
+			$endpoints[ $route ][ $i ]['permission_callback'] = function ( $request ) use ( $original ) {
+				if ( ! is_user_logged_in() ) {
+					return new WP_Error( 'rest_forbidden', 'Authentication required.', array( 'status' => 401 ) );
+				}
+				return is_callable( $original ) ? call_user_func( $original, $request ) : true;
+			};
+		}
+	}
+	return $endpoints;
+}, PHP_INT_MAX );
+```
+
+Either gate alone refuses the request, so it takes two unrelated plugins misbehaving to reopen the route. Offered as a pattern for anyone stuck here, not as an argument against fixing it: the two-line change in this issue is still the right answer, and a regression test that registers a short-circuiting `rest_pre_dispatch` callback at priority 10 alongside ACF would keep it fixed.
+
+Happy to help with a PR if that is useful.
+
+---
+
+## The original report, as filed
+
+Kept for the record. Its substance is in the #1000 comment above.
 
 ---
 
