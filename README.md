@@ -26,14 +26,30 @@ warning so it is visible without failing the deploy.
 
 ## Install
 
-mu-plugins does not load subdirectories, so the file goes in the root:
+**One file, not this folder.** Upload `uamswp-restrict-user-enumeration.php`
+and nothing else:
 
 ```
-wp-content/mu-plugins/uamswp-restrict-user-enumeration.php
+uamswp-restrict-user-enumeration.php  ->  wp-content/mu-plugins/uamswp-restrict-user-enumeration.php
 ```
 
 That is the whole install. No options, no database writes, no admin UI, no
 activation step.
+
+Uploading the folder instead does not half-work, it **silently does nothing**.
+`wp_get_mu_plugins()` (`wp-includes/load.php`) does a flat `readdir` of
+`wp-content/mu-plugins/` and keeps only entries ending in `.php`; it never
+recurses. A file one directory down is never included, so the site looks
+entirely normal, nothing errors, and every route this plugin exists to close
+stays open.
+
+Everything else here is development scaffolding and belongs nowhere near a
+server — `tests/`, `bin/`, `composer.json`, the phpunit and phpcs configs, this
+README, and especially `AUDIT.md`, which is a list of what is currently
+exploitable on these exact sites. `wp-content/` is inside the web root.
+
+`bin/acceptance.sh` is the one other file you will use and it runs from a
+laptop, not the server.
 
 ## Rollback
 
