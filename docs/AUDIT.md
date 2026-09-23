@@ -186,16 +186,31 @@ The two unread sites should be checked at **Tools > Site Health > Info >
 WordPress** when someone is next in their wp-admin. Neither is a production
 `uams.edu` site.
 
-### PHP — still needs wp-admin
+### PHP — measured, 8.2.x
 
 BigScoots strips `X-Powered-By` (`server: BigScoots Gateway/1.0.0` is all that
-comes back), so PHP cannot be read over HTTP. Two sources:
+comes back) and the Site Health REST endpoints need authentication, so this one
+cannot be read over HTTP. It came from **Tools > Site Health > Info > Server >
+PHP version**, read 2026-09-23:
 
-- **Corroborated, estate-wide:** UAMS Sentinel is deployed as an mu-plugin
-  everywhere and declares `"php": ">=8.1"` (`uams-sentinel/composer.json`). It
-  runs, so the estate is 8.1 or later.
-- **To confirm exactly:** **Tools > Site Health > Info > Server > PHP version**,
-  per install. No CLI needed.
+| Install | PHP |
+|---|---|
+| `sites.uams.edu` (and the subsites it serves) | **8.2.33** |
+| `uamshealth.com` | **8.2.30** |
+
+**8.2, not the 8.1 the spec assumed**, and comfortably above it. Sentinel's
+`"php": ">=8.1"` was a floor, not a reading, and it held.
+
+**The two differ by patch level, which is the more useful finding.** These are
+separate servers rather than one host serving the estate, so "the PHP version"
+is not a single fact and a per-install reading is the only accurate one. The
+remaining 30 are unread; the BigScoots control panel lists PHP per site and is
+the cheaper place to collect them than 30 trips through wp-admin.
+
+Incidentally this retires a hazard the plugin guards against anyway:
+`strtolower()` stopped being locale-sensitive in PHP 8.2, so the Turkish-locale
+case-folding problem that `uamswp_rue_normalize_route()` uses `strtr()` to avoid
+cannot occur on these servers. The code does not depend on that being true.
 
 ### Why it does not gate the deploy either way
 

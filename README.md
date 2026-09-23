@@ -232,9 +232,9 @@ worse than one with a conservative header, and mu-plugins ignore these headers
 anyway.
 
 The estate was then measured: **the oldest WordPress is 6.8.10**, not 6.4, read
-from 30 of the 32 sites over HTTP. PHP is 8.1 or later, corroborated by Sentinel
-running estate-wide with that requirement. Nothing is near the declared floor.
-See docs/AUDIT.md section 3.
+from 30 of the 32 sites over HTTP, and **PHP is 8.2** — 8.2.33 on
+`sites.uams.edu`, 8.2.30 on `uamshealth.com`, read from Site Health. Nothing is
+near the declared floor. See docs/AUDIT.md section 3.
 
 **3. FR1 is enforced twice, not once.**
 
