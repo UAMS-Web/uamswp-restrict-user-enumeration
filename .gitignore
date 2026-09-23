@@ -3,7 +3,7 @@
 .phpcs.cache
 .phpunit.result.cache
 /phpunit.xml
-/phpunit-killswitch.xml
+/tests/killswitch/phpunit.xml
 /phpcs.xml
 .DS_Store
 

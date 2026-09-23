@@ -3,8 +3,17 @@
 A single-file WordPress must-use plugin that closes every known unauthenticated
 route to a username or an author slug, and leaves logged-in editing alone.
 
-Built to [the spec](uamswp-restrict-user-enumeration-spec.md). The pre-deploy
-audit it asked for is in [AUDIT.md](AUDIT.md) and was done first.
+> ### Deploy this one file
+>
+> ```
+> uamswp-restrict-user-enumeration.php  ->  wp-content/mu-plugins/uamswp-restrict-user-enumeration.php
+> ```
+>
+> It is the only file in this repository that belongs on a server. Everything
+> else is development and deployment tooling. See [Install](#install).
+
+Built to [the spec](docs/SPEC.md). The pre-deploy audit it asked for is in
+[docs/AUDIT.md](docs/AUDIT.md) and was done first.
 
 ## What it does
 
@@ -21,8 +30,10 @@ audit it asked for is in [AUDIT.md](AUDIT.md) and was done first.
 Deliberately **not** handled, per the spec: login error messages,
 `/author/<slug>/` archive pages themselves, `dc:creator` in RSS, SEO-plugin
 author sitemaps, and XML-RPC (already authenticated). The audit found SEOPress
-in the estate with its own `/author.xml`; `bin/acceptance.sh` reports it as a
-warning so it is visible without failing the deploy.
+across the estate with its own `/author.xml`, and All in One SEO on
+`angelsguidelines.com` with its `author-sitemap.xml`. Both are off today;
+`bin/acceptance.sh` reports the SEOPress one as a warning so it stays visible
+without failing the deploy.
 
 ## Install
 
@@ -45,7 +56,7 @@ stays open.
 
 Everything else here is development scaffolding and belongs nowhere near a
 server — `tests/`, `bin/`, `composer.json`, the phpunit and phpcs configs, this
-README, and especially `AUDIT.md`, which is a list of what is currently
+README, and especially `docs/AUDIT.md`, which is a list of what is currently
 exploitable on these exact sites. `wp-content/` is inside the web root.
 
 `bin/acceptance.sh` is the one other file you will use and it runs from a
@@ -82,7 +93,7 @@ add_action( 'uamswp_rue_blocked', function ( $vector, $request ) {
 
 ## Tests
 
-66 tests over two suites. The kill switch needs its own process, because
+67 tests over two suites. The kill switch needs its own process, because
 `UAMSWP_RUE_DISABLE` is read when the file is first included and a constant
 cannot be undefined afterwards.
 
@@ -94,8 +105,8 @@ composer lint        # PHPCS, WordPress ruleset
 ```
 
 Verified green on **WP 6.4.12, 6.8.10, 7.0.6 and 7.1.2, single-site and
-multisite** — 16 combinations, 66 tests and 170 assertions each. 6.8.10 and
-7.0.6 are what the estate actually runs (see AUDIT.md section 3); 6.4.12 is the
+multisite** — 16 combinations, 67 tests and 173 assertions each. 6.8.10 and
+7.0.6 are what the estate actually runs (see [docs/AUDIT.md](docs/AUDIT.md) section 3); 6.4.12 is the
 spec's stated floor and 7.1.2 is current.
 
 Beyond the spec's T1-T13, the suite asserts the things a regression would
@@ -120,7 +131,7 @@ quietly break:
 
 These installs have no shell. The file goes up by FTP to
 `wp-content/mu-plugins/`, the checks below run from a laptop, and anything that
-has to be read from an install is a wp-admin screen — AUDIT.md section 6 names
+has to be read from an install is a wp-admin screen — docs/AUDIT.md section 6 names
 each one. No step needs a CLI on the server.
 
 ```bash
@@ -128,9 +139,15 @@ bin/acceptance.sh https://one-site.uams.edu
 bin/acceptance.sh -f sites.txt          # one origin per line
 ```
 
-Anonymous, no cookies. Exits non-zero if anything fails, so it goes straight
-into a monitor. Run it against the **canonical** origin; it warns if the host
-redirects, because a wall of 301s says nothing about the plugin.
+Sixteen checks per site, anonymous and without cookies. Exits non-zero if
+anything fails, so it goes straight into a monitor. Run it against the
+**canonical** origin; it warns if the host redirects, because a wall of 301s
+says nothing about the plugin.
+
+`WARN` is neither pass nor fail and does not affect the exit status. It means
+either something real but out of scope (an SEO plugin's own author sitemap), or
+that a check could not be exercised — `_embed` proves nothing on a site with no
+posts, and saying so is more honest than banking it as a pass.
 
 Every check is a GET except `check_batch`, which POSTs a users sub-request to
 `/wp-json/batch/v1`. That one earns its exception: it is the only check that
@@ -146,6 +163,13 @@ goes through untouched. `rest_pre_dispatch` runs per sub-request and catches it.
 
 It creates nothing: the sub-request carries no body, it is refused before the
 handler runs, and core requires `create_users` regardless.
+
+Three sites already refused these routes before this plugin existed, for two
+different reasons, and neither conflicts with it. `uamsonlinedev.com` and
+`angelsguidelines.com` run Wordfence with its username-discovery option on;
+`sites.uams.edu` has something else that has not been identified. docs/AUDIT.md
+section 7 has the fingerprints. Deploy to all of them anyway — the Wordfence
+setting is a checkbox somebody can untick.
 
 Then open a post in the block editor as an Editor and confirm the Author
 dropdown still populates. That is the one thing the automated tests cover but
@@ -170,7 +194,7 @@ On WordPress 7.0+ a raw `WP_Error` returned from `rest_pre_dispatch` is a
 `_wp_connectors_rest_settings_dispatch()` on `rest_post_dispatch` type-hints
 `WP_REST_Response`. That turns the intended 401 into a 500 on a route an
 anonymous caller picks. Reproduced against WP 7.1.2 before the fix; see
-AUDIT.md section 4. The converted response is the same 401, with the same body,
+docs/AUDIT.md section 4. The converted response is the same 401, with the same body,
 everywhere else.
 
 This is not hypothetical: **27 of the 32 installs are on WP 7.0.6 or 7.1.2
@@ -190,7 +214,7 @@ anyway.
 The estate was then measured: **the oldest WordPress is 6.8.10**, not 6.4, read
 from 30 of the 32 sites over HTTP. PHP is 8.1 or later, corroborated by Sentinel
 running estate-wide with that requirement. Nothing is near the declared floor.
-See AUDIT.md section 3.
+See docs/AUDIT.md section 3.
 
 **3. T7 tests a POST, not a GET.**
 
@@ -210,11 +234,22 @@ user table.
 
 ## Layout
 
-```
-uamswp-restrict-user-enumeration.php   the plugin; this is the only file that ships
-AUDIT.md                               spec section 8, done before the code
-bin/acceptance.sh                      spec section 5, live checks
-bin/install-wp-tests.sh                WordPress test suite installer
-tests/                                 main suite
-tests/killswitch/                      FR5, separate process
-```
+One file ships. It is the only `.php` in the repository root, and everything
+else is sorted by who uses it: `bin/` is run by whoever deploys, `docs/` is
+read, `tests/` and the tool configs are for whoever changes the plugin.
+
+| Path | | What it is |
+|---|---|---|
+| `uamswp-restrict-user-enumeration.php` | **ships** | The plugin. Goes to `wp-content/mu-plugins/`. |
+| `README.md` | | This file. |
+| `docs/SPEC.md` | | The spec this was built to. |
+| `docs/AUDIT.md` | | Spec section 8, done before the code. Holds the pre-deploy baselines and what else already blocks these routes. |
+| `bin/acceptance.sh` | | Spec section 5. Run from a laptop against each site after deploy. |
+| `bin/install-wp-tests.sh` | | Sets up the WordPress test suite for local development. |
+| `tests/` | | Main suite. |
+| `tests/killswitch/` | | FR5, with its own phpunit config because it needs its own process. |
+| `composer.json`, `phpcs.xml.dist`, `phpunit.xml.dist` | | Tooling. |
+
+Nothing outside the first row should ever reach a server. `wp-content/` is
+inside the web root, and `docs/AUDIT.md` in particular is a list of what is
+currently exploitable on these exact sites.
