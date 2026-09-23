@@ -7,8 +7,13 @@ that still needs a live install to answer.
 Sources: local clones of `uams-2020`, `UAMSWP-Find-a-Doc` and
 `UAMSWP-People-Showcase`; GitHub code search across all 89 repositories in the
 `UAMS-Web` organisation; shallow clones of `UAMSWP-Sentinel`,
-`UAMSWP-Sentinel-configs` and `uamswp-seopress`; and one anonymous HTTP run
-against `https://uamshealth.com`.
+`UAMSWP-Sentinel-configs` and `uamswp-seopress`; and anonymous HTTP against the
+estate — a full vector run on `uamshealth.com` and a WordPress version sweep of
+all 32 sites.
+
+These installs have no shell, so nothing below was gathered with a CLI on a
+server and nothing below asks anyone to use one. Every open item is a URL or a
+named wp-admin screen.
 
 ---
 
@@ -89,9 +94,11 @@ Nothing links numeric author URLs. **No action.**
 
 ## 2. Active plugins, and SEO author sitemaps
 
-Per-install plugin lists cannot be read from here; that needs wp-admin or
-`wp plugin list --status=active` on each of the 32 installs, and it should be
-captured during the deploy. What the repositories and one live site do settle:
+Per-install plugin lists cannot be read from here. There is no shell on these
+installs, so this is a wp-admin job: **Plugins > Installed Plugins > Active** on
+each site, plus **Network Admin > Plugins** for the network-activated ones on
+each multisite. Capture it during the deploy. What the repositories and live
+HTTP do settle without opening wp-admin at all:
 
 **SEOPress is in the estate and confirmed live.** `UAMS-Web/uamswp-seopress`
 and `uamswp-seopress-pro` are org repositories, and `uamshealth.com` redirects
@@ -126,16 +133,56 @@ stands between SEOPress and a sitemap URL.
 
 ## 3. Oldest PHP and WordPress in the estate
 
-**PHP — corroborated, not measured.** UAMS Sentinel is deployed estate-wide as
-an mu-plugin and declares `"php": ">=8.1"` (`uams-sentinel/composer.json`). That
-is good evidence for the spec's 8.1 assumption but it is not a reading from any
-install. Confirm with `wp eval 'echo PHP_VERSION;'` during the deploy.
+There is no shell on these installs, so both halves of this were approached as
+an HTTP question first and a wp-admin question second.
 
-**WordPress — unknown, and deliberately made not to matter.**
+### WordPress — measured, 30 of 32, over HTTP
 
-Nothing in the repositories records a WordPress version. Rather than block on
-confirming the spec's "WP 6.4 or later" assumption, the plugin was written so
-the assumption has nothing resting on it:
+Feeds carry the version in their `<generator>` tag, so the whole estate can be
+read anonymously from a laptop with no wp-admin and no CLI:
+
+```bash
+curl -sL "https://<site>/feed/" | grep -oE '\?v=[0-9.]+'
+```
+
+Swept 2026-09-23:
+
+| Version | Installs |
+|---|---|
+| **7.1.2** | uamshealth.dev |
+| **7.0.6** | 26 installs — aging, cancer, communications, communityhealth, giving, go, healthprofessions, hr, medicine, nursing, nwa, partnerships, pharmacy, psychiatry, publichealth, regionalcampuses, research, sites, students, tri, uams-academy, uamsdev, uamshealth, uamsonlinedev, uasys, web |
+| **6.8.10** | idhi, news, uamscaregiving |
+| unread | angelsguidelines.com (200, no feed), uams-pepper.bigscoots-wpo.com (no response) |
+
+**The oldest WordPress in the estate is 6.8.10, not 6.4.** The spec's assumption
+was wrong in the safe direction. Two consequences:
+
+1. **The WP 7.x batch fatal in section 4 is not a forward-looking concern, it is
+   a live one.** `_wp_connectors_rest_settings_dispatch()` arrived in WP 7.0, so
+   **27 of the 32 installs have it today**. Shipping FR1's literal `WP_Error`
+   would have turned the intended 401 into a 500 on most of the estate on day
+   one.
+2. Nothing in the estate is anywhere near the plugin's floor, so the version
+   question carries no risk either way.
+
+The two unread sites should be checked at **Tools > Site Health > Info >
+WordPress** when someone is next in their wp-admin. Neither is a production
+`uams.edu` site.
+
+### PHP — still needs wp-admin
+
+BigScoots strips `X-Powered-By` (`server: BigScoots Gateway/1.0.0` is all that
+comes back), so PHP cannot be read over HTTP. Two sources:
+
+- **Corroborated, estate-wide:** UAMS Sentinel is deployed as an mu-plugin
+  everywhere and declares `"php": ">=8.1"` (`uams-sentinel/composer.json`). It
+  runs, so the estate is 8.1 or later.
+- **To confirm exactly:** **Tools > Site Health > Info > Server > PHP version**,
+  per install. No CLI needed.
+
+### Why it does not gate the deploy either way
+
+The plugin was written so nothing rests on either answer:
 
 | API used | Available since |
 |---|---|
@@ -150,8 +197,11 @@ with `Requires PHP: 7.0`. Below 5.5 there are no core sitemaps to remove and the
 filter simply never fires, so the plugin still does the other three jobs. This
 is a deliberate deviation from spec section 4 and is called out in the README.
 
-Verified by running the full suite against **WP 6.4.12** and **WP 7.1.2**, each
-single-site and multisite: 66 tests, 170 assertions, green on all four.
+Verified by running the full suite against **WP 6.4.12, 6.8.10, 7.0.6 and
+7.1.2**, each single-site and multisite: 16 runs, 66 tests and 170 assertions
+apiece, all green. 6.8.10 and 7.0.6 are the versions the estate actually runs;
+6.4.12 is the spec's stated floor and 7.1.2 is current, so the bracket holds on
+both sides of what is deployed.
 
 Note that mu-plugins ignore `Requires at least` and `Requires PHP` — they always
 load. The header is documentation, which is another reason to declare the floor
@@ -180,8 +230,13 @@ plugin returns the already-converted response instead, which is byte-identical
 on the wire on every other path. FR1 asks for a `WP_Error`; the deviation and
 the reason are documented at the return statement and in the README.
 
-Sentinel is not affected today, for the reason in section 1. Anything else in
-the estate that short-circuits `rest_pre_dispatch` with a `WP_Error` is.
+**This is live, not forward-looking.** The version sweep in section 3 puts 27
+of the 32 installs on WP 7.0.6 or 7.1.2, so most of the estate has the
+connectors filter today. Shipping FR1 literally would have answered 500 instead
+of 401 on those sites from the first deploy.
+
+Sentinel is not affected, for the reason in section 1. Anything else in the
+estate that short-circuits `rest_pre_dispatch` with a `WP_Error` is.
 
 ---
 
@@ -225,13 +280,27 @@ Someone needs to name the monitor. `bin/acceptance.sh` exits non-zero if any
 check fails and takes `-f sites.txt`, so it drops into a cron entry or a CI
 schedule without modification.
 
-**Other live-only items for the deploy:**
+**Other items for the deploy.** There is no shell on these installs, so each of
+these is a wp-admin screen or an HTTP request, never a `wp` command:
 
-- `wp plugin list --status=active` per install; flag any other SEO plugin with
-  an author sitemap (Yoast's `author-sitemap.xml`, Rank Math's).
-- `wp eval 'echo PHP_VERSION;'` per install.
-- Whether BigScoots will do the optional edge rule in spec section 6. Unknown;
-  needs a support ticket.
+- **Active plugins per install** — Plugins > Installed Plugins > Active, and
+  Network Admin > Plugins on each multisite. Flag any other SEO plugin with an
+  author sitemap; check Yoast's `/author-sitemap.xml` and Rank Math's
+  `/author-sitemap.xml` the same way `bin/acceptance.sh` already checks
+  SEOPress's `/author.xml`, and turn the feature off in the plugin's own
+  settings rather than trying to block the URL.
+- **PHP version per install** — Tools > Site Health > Info > Server.
+- **WordPress version for the two unread sites** — Tools > Site Health > Info >
+  WordPress, for `angelsguidelines.com` and `uams-pepper.bigscoots-wpo.com`.
+  The other 30 were read over HTTP in section 3.
+- **The optional edge rule in spec section 6** — whether BigScoots will do it at
+  the server level is unknown and needs a support ticket. The plugin remains
+  the actual control either way.
+
+**Deployment is by FTP**, the same path `UAMSWP-Sentinel` uses for its own
+mu-plugin: upload `uamswp-restrict-user-enumeration.php` to
+`wp-content/mu-plugins/`. Rollback is editing `wp-config.php` to define
+`UAMSWP_RUE_DISABLE`, or deleting the file. Neither needs a shell.
 
 ---
 

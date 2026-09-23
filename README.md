@@ -77,8 +77,10 @@ composer test        # both suites
 composer lint        # PHPCS, WordPress ruleset
 ```
 
-Verified green on **WP 6.4.12 and WP 7.1.2, single-site and multisite** — four
-combinations, 66 tests, 170 assertions each.
+Verified green on **WP 6.4.12, 6.8.10, 7.0.6 and 7.1.2, single-site and
+multisite** — 16 combinations, 66 tests and 170 assertions each. 6.8.10 and
+7.0.6 are what the estate actually runs (see AUDIT.md section 3); 6.4.12 is the
+spec's stated floor and 7.1.2 is current.
 
 Beyond the spec's T1-T13, the suite asserts the things a regression would
 quietly break:
@@ -99,6 +101,11 @@ quietly break:
   rather than checking one field.
 
 ## Deploying
+
+These installs have no shell. The file goes up by FTP to
+`wp-content/mu-plugins/`, the checks below run from a laptop, and anything that
+has to be read from an install is a wp-admin screen — AUDIT.md section 6 names
+each one. No step needs a CLI on the server.
 
 ```bash
 bin/acceptance.sh https://one-site.uams.edu
@@ -135,16 +142,24 @@ anonymous caller picks. Reproduced against WP 7.1.2 before the fix; see
 AUDIT.md section 4. The converted response is the same 401, with the same body,
 everywhere else.
 
+This is not hypothetical: **27 of the 32 installs are on WP 7.0.6 or 7.1.2
+today**, so shipping FR1 literally would have answered 500 instead of 401 on
+most of the estate from the first deploy.
+
 **2. Declared floors are WP 5.5 and PHP 7.0, not WP 6.4 and PHP 8.1 (section 4).**
 
 Section 4 states those minimums and asks for them to be confirmed against the
-oldest install. They could not be confirmed from here, so the dependency was
-removed instead: the newest API the plugin uses is `wp_sitemaps_add_provider`
-(WP 5.5), `rest_convert_error_to_response` is called behind `function_exists`,
-and nothing needs PHP 8. A security control that fails to load because of a
-version guess is worse than one with a conservative header, and mu-plugins
-ignore these headers anyway. The estate is almost certainly PHP 8.1+; see
-AUDIT.md section 3.
+oldest install. The dependency was removed rather than guessed at: the newest
+API the plugin uses is `wp_sitemaps_add_provider` (WP 5.5),
+`rest_convert_error_to_response` is called behind `function_exists`, and nothing
+needs PHP 8. A security control that fails to load because of a version guess is
+worse than one with a conservative header, and mu-plugins ignore these headers
+anyway.
+
+The estate was then measured: **the oldest WordPress is 6.8.10**, not 6.4, read
+from 30 of the 32 sites over HTTP. PHP is 8.1 or later, corroborated by Sentinel
+running estate-wide with that requirement. Nothing is near the declared floor.
+See AUDIT.md section 3.
 
 **3. T7 tests a POST, not a GET.**
 
