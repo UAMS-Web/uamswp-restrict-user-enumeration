@@ -110,11 +110,19 @@ class Test_UAMSWP_RUE_Embed_Param extends WP_Test_REST_TestCase {
 	 * vector, asserted.
 	 */
 	public function test_without_the_plugin_embed_leaks_the_author() {
-		remove_filter( 'rest_pre_dispatch', 'uamswp_rue_block_rest_users', 10 );
+		// Both gates, because either one alone still refuses the sub-request.
+		remove_filter( 'rest_pre_dispatch', 'uamswp_rue_block_rest_users', PHP_INT_MAX );
+		remove_filter( 'rest_endpoints', 'uamswp_rue_guard_endpoints', PHP_INT_MAX );
+
+		// The routes were built with the wrapped callback already in place.
+		global $wp_rest_server;
+		$wp_rest_server = new Spy_REST_Server();
+		do_action( 'rest_api_init', $wp_rest_server );
 
 		$body = wp_json_encode( $this->embedded_posts() );
 
-		add_filter( 'rest_pre_dispatch', 'uamswp_rue_block_rest_users', 10, 3 );
+		add_filter( 'rest_pre_dispatch', 'uamswp_rue_block_rest_users', PHP_INT_MAX, 3 );
+		add_filter( 'rest_endpoints', 'uamswp_rue_guard_endpoints', PHP_INT_MAX );
 
 		$this->assertStringContainsString( 'enumtarget', $body );
 	}
