@@ -2,7 +2,7 @@
 /**
  * FR5: the wp-config.php kill switch.
  *
- * Covers T12. Runs under phpunit-killswitch.xml.dist, whose bootstrap defines
+ * Covers T12. Runs under tests/killswitch/phpunit.xml.dist, whose bootstrap defines
  * UAMSWP_RUE_DISABLE before the plugin file is included, because that is when
  * the decision is made and a constant cannot be undefined afterwards.
  *
