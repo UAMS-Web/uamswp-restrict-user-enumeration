@@ -134,18 +134,48 @@ check_batch() {
 
 # Nothing identifying an author may appear in a posts response a stranger can
 # ask to have the author embedded into.
+#
+# What matters is whether the embedded author carries an identity, not whether
+# an _embedded block exists. Any error object in there is a refusal, whoever
+# issued it: this plugin answers rest_forbidden, Wordfence's equivalent option
+# makes the lookup fail with rest_user_invalid_id, and both are fine. Treating
+# the presence of "_embedded" as the failure reports a leak on a site that is
+# refusing correctly.
 check_embed() {
-	local site="$1" body
+	local site="$1" body author
 
 	body=$(curl "${CURL_OPTS[@]}" "${site}/wp-json/wp/v2/posts?per_page=1&_embed=author" 2>/dev/null)
 
-	if printf '%s' "$body" | grep -q '"rest_forbidden"'; then
-		record pass "_embed=author" "embedded author refused"
-	elif printf '%s' "$body" | grep -q '"_embedded"'; then
-		record fail "_embed=author" "embedded author resolved; inspect the response"
-	else
-		record pass "_embed=author" "no embedded author in response"
-	fi
+	author=$(printf '%s' "$body" | python3 -c '
+import json, sys
+try:
+    posts = json.load(sys.stdin)
+except Exception:
+    print("UNREADABLE"); raise SystemExit
+if not isinstance(posts, list) or not posts:
+    print("NOPOSTS"); raise SystemExit
+entries = (posts[0].get("_embedded") or {}).get("author") or []
+if not entries:
+    print("NOAUTHOR"); raise SystemExit
+a = entries[0]
+if not isinstance(a, dict) or "code" in a:
+    print("REFUSED " + str(a.get("code", "")))
+elif a.get("slug") or a.get("name"):
+    print("LEAK slug=%s name=%s" % (a.get("slug", ""), a.get("name", "")))
+else:
+    print("REFUSED")
+' 2>/dev/null)
+
+	case "$author" in
+		REFUSED*)   record pass "_embed=author" "embedded author refused (${author#REFUSED })" ;;
+		NOAUTHOR)   record pass "_embed=author" "no author embedded in response" ;;
+		# No posts means this check proved nothing on this site, which is worth
+		# saying rather than banking as a pass.
+		NOPOSTS)    record warn "_embed=author" "site has no posts; check not exercised" ;;
+		UNREADABLE) record fail "_embed=author" "could not parse the posts response" ;;
+		LEAK*)      record fail "_embed=author" "author data embedded: ${author#LEAK }" ;;
+		*)          record fail "_embed=author" "unexpected: ${author:-no output}" ;;
+	esac
 }
 
 # /wp-sitemap-users-1.xml is a list of author archive URLs, so slugs.

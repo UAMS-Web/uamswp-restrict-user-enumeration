@@ -94,16 +94,33 @@ Nothing links numeric author URLs. **No action.**
 
 ## 2. Active plugins, and SEO author sitemaps
 
-Per-install plugin lists cannot be read from here. There is no shell on these
-installs, so this is a wp-admin job: **Plugins > Installed Plugins > Active** on
-each site, plus **Network Admin > Plugins** for the network-activated ones on
-each multisite. Capture it during the deploy. What the repositories and live
-HTTP do settle without opening wp-admin at all:
+**Partly answered over HTTP.** `/wp-json/` lists every registered REST
+namespace, anonymously, and plugins that register routes name themselves there:
 
-**SEOPress is in the estate and confirmed live.** `UAMS-Web/uamswp-seopress`
-and `uamswp-seopress-pro` are org repositories, and `uamshealth.com` redirects
-`/wp-sitemap.xml` to `/sitemaps.xml`, which is SEOPress's
-`Render::sitemapShortcut()` (`src/Actions/Sitemap/Render.php:112-128`).
+```bash
+curl -s "https://<site>/wp-json/" | jq -r '.namespaces[]'
+```
+
+That is not the full active-plugin list — a plugin with no REST routes is
+invisible to it — but it settled the questions this audit actually needed, and
+it is a good first pass before anyone opens 32 wp-admins. The sweep is in
+section 7. Plugins with no REST routes still need **Plugins > Installed
+Plugins > Active**, plus **Network Admin > Plugins** on each multisite.
+
+What the repositories and the sweep settle:
+
+**SEOPress is on 30 of the 31 sites that answered**, confirmed by the
+`seopress/v1` namespace, and `uamshealth.com` redirects `/wp-sitemap.xml` to
+`/sitemaps.xml`, which is SEOPress's `Render::sitemapShortcut()`
+(`src/Actions/Sitemap/Render.php:112-128`).
+
+**The exception is `angelsguidelines.com`, which runs All in One SEO instead**
+(`aioseoTableOfContents/v1`), on an otherwise unrelated stack — welaunch,
+themeco, gtm4wp. Section 8 asked to flag Yoast or Rank Math; AIOSEO is the one
+actually present, and it has an `author-sitemap.xml` of its own. On that site it
+is not serving: `/author-sitemap.xml` returns 302 and `/sitemap.xml` redirects
+to core's `/wp-sitemap.xml`, so AIOSEO's sitemap module is off. Worth
+re-checking if anyone turns it on.
 
 **SEOPress ships its own author sitemap, and this plugin does not touch it.**
 
@@ -301,6 +318,76 @@ these is a wp-admin screen or an HTTP request, never a `wp` command:
 mu-plugin: upload `uamswp-restrict-user-enumeration.php` to
 `wp-content/mu-plugins/`. Rollback is editing `wp-config.php` to define
 `UAMSWP_RUE_DISABLE`, or deleting the file. Neither needs a shell.
+
+---
+
+## 7. What else already blocks these routes
+
+Three of the 32 sites answered 401 on `/wp/v2/users` before this plugin was
+deployed anywhere. They are not all the same thing, and the difference matters.
+
+### Wordfence, on `uamsonlinedev.com` and `angelsguidelines.com`
+
+Both carry the `wordfence/v1` and `wordfence-login-security/v1` namespaces; no
+other site in the estate does. The behaviour is Wordfence's **"Prevent
+discovery of usernames through '/?author=N' scans, the oEmbed API, the
+WordPress REST API, and WordPress XML Sitemaps"** option, which is on by
+default in both the free and paid versions.
+
+The fingerprint is distinctive — it reuses core's own wording rather than
+inventing a message:
+
+| Request | Answer |
+|---|---|
+| `GET /wp/v2/users` | 401 `rest_user_cannot_view`, "Sorry, you are not allowed to list users." |
+| `GET /wp/v2/users/1` | 404 `rest_user_invalid_id` |
+| `?author=1` | 404 |
+| `_embed=author` | embedded author is `rest_user_invalid_id` |
+| users sitemap | blocked |
+| **batch sub-request** | **401 — Wordfence does catch this** |
+
+Note the last row. Wordfence blocks per dispatch, so it covers the batch
+envelope, which is more than the `sites.uams.edu` blocker manages. It also
+answers `rest_user_cannot_view` to a `POST` that was never a list request,
+which is the tell that it is intercepting rather than letting core decide.
+
+**No conflict with this plugin.** Both refuse anonymous callers with a 401;
+whichever runs first, the other preserves the result. Deploy here anyway: the
+Wordfence option is a checkbox someone can turn off, and this plugin is not.
+
+### Something unidentified, on `sites.uams.edu`
+
+Not Wordfence — that site's namespaces are `sweep/v1`, `search-regex/v1`,
+`seopress/v1`, `wp-mail-smtp/v1`, `genesis/v1`. Whatever it is registers no
+REST routes of its own, which fits an mu-plugin or a snippet in a theme.
+
+Its pre-deploy fingerprint, which is **not** Wordfence's:
+
+- `rest_forbidden`, "Authentication required." — the wording from this spec,
+  not from core
+- case-insensitive: `/wp/v2/Users` and `/wp/v2/USERS` both refused
+- `?author=1` → **301 to the home page**, where Wordfence 404s
+- oEmbed author fields replaced with the site name and home URL
+- **batch sub-request went straight through** to the handler
+
+That last point is the important one. It only ever sees the outer HTTP request,
+which is the signature of a hook like `rest_authentication_errors` rather than
+`rest_pre_dispatch`. Everything else about it looks like a competent
+implementation of FR1 through FR4 — so most likely someone has already applied
+a version of this fix there, using the wrong hook for the batch vector.
+
+**It cannot be identified from outside**, because this plugin now returns the
+same message on that site. Resolving it takes one look at
+`wp-content/mu-plugins/` over FTP, and at Plugins > Installed Plugins. Worth
+doing: if it is a hand-rolled snippet it should come out now that this plugin
+supersedes it, and if it is something else it should be understood before the
+other 31 sites are assumed clean.
+
+### The other 29
+
+No blocking of any kind. `GET /wp/v2/users` returns 200 with real user data,
+`/wp/v2/Users` likewise. `uams-pepper.bigscoots-wpo.com` did not respond at all
+and is unassessed.
 
 ---
 
