@@ -13,8 +13,13 @@
  * Must-use plugin. Drop this single file in wp-content/mu-plugins/ (the root,
  * not a subdirectory: mu-plugins does not recurse).
  *
- * Emergency rollback without a deploy: define( 'UAMSWP_RUE_DISABLE', true ) in
- * wp-config.php. No hooks are then registered at all.
+ * Emergency rollback: delete this file, or define( 'UAMSWP_RUE_DISABLE', true ).
+ * No hooks are then registered at all.
+ *
+ * On hosting that does not allow editing wp-config.php, which includes this
+ * estate, put the define in an mu-plugin that sorts before this one, such as
+ * 0-uamswp-rue-disable.php. wp_get_mu_plugins() sorts the directory, so a
+ * leading digit is enough to guarantee it loads first. See the README.
  *
  * @package UAMSWP_Restrict_User_Enumeration
  */

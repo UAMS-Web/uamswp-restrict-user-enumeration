@@ -316,8 +316,18 @@ these is a wp-admin screen or an HTTP request, never a `wp` command:
 
 **Deployment is by FTP**, the same path `UAMSWP-Sentinel` uses for its own
 mu-plugin: upload `uamswp-restrict-user-enumeration.php` to
-`wp-content/mu-plugins/`. Rollback is editing `wp-config.php` to define
-`UAMSWP_RUE_DISABLE`, or deleting the file. Neither needs a shell.
+`wp-content/mu-plugins/`.
+
+**Rollback is deleting the file.** Spec section 6 offers `wp-config.php` as the
+other route, and on this estate that route does not exist: BigScoots does not
+allow editing `wp-config.php`. UAMS Sentinel's loader says so in its own header,
+which is why Sentinel reads its constants from
+`mu-plugins/uams-sentinel-config.php` rather than from `wp-config.php`.
+
+The kill switch still works, it just needs somewhere to live.
+`wp_get_mu_plugins()` sorts the directory before including anything, so an
+mu-plugin named with a leading digit is guaranteed to load first and can define
+the constant. The README has the file. Neither route needs a shell.
 
 ---
 
