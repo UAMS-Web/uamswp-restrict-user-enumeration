@@ -19,7 +19,7 @@ Built to [the spec](docs/SPEC.md). The pre-deploy audit it asked for is in
 
 | Vector | Handling |
 |---|---|
-| `GET /wp-json/wp/v2/users`, `/wp/v2/users/{id}` | 401 when not logged in, route matched case-insensitively |
+| `GET /wp-json/wp/v2/users`, `/wp/v2/users/{id}` | 401 when not logged in, route matched case-insensitively, enforced at **two independent gates** |
 | `?rest_route=/wp/v2/users` | same check, it is the same route |
 | `/batch/v1` carrying a users sub-request | same check: `rest_pre_dispatch` fires per sub-request |
 | `_embed` on a posts request | same check: embedding dispatches a real sub-request |
@@ -113,7 +113,7 @@ add_action( 'uamswp_rue_blocked', function ( $vector, $request ) {
 
 ## Tests
 
-67 tests over two suites. The kill switch needs its own process, because
+85 tests over two suites. The kill switch needs its own process, because
 `UAMSWP_RUE_DISABLE` is read when the file is first included and a constant
 cannot be undefined afterwards.
 
@@ -125,7 +125,7 @@ composer lint        # PHPCS, WordPress ruleset
 ```
 
 Verified green on **WP 6.4.12, 6.8.10, 7.0.6 and 7.1.2, single-site and
-multisite** — 16 combinations, 67 tests and 173 assertions each. 6.8.10 and
+multisite** — 16 combinations, 85 tests and 221 assertions each. 6.8.10 and
 7.0.6 are what the estate actually runs (see [docs/AUDIT.md](docs/AUDIT.md) section 3); 6.4.12 is the
 spec's stated floor and 7.1.2 is current.
 
@@ -236,7 +236,37 @@ from 30 of the 32 sites over HTTP. PHP is 8.1 or later, corroborated by Sentinel
 running estate-wide with that requirement. Nothing is near the declared floor.
 See docs/AUDIT.md section 3.
 
-**3. T7 tests a POST, not a GET.**
+**3. FR1 is enforced twice, not once.**
+
+The spec says to implement on `rest_pre_dispatch`. That alone was found
+insufficient in production. `rest_pre_dispatch` is a filter chain, and
+**Advanced Custom Fields 6.4.2** hooks `ACF_Rest_Api::initialize()` to it at
+priority 10 without ever returning its input:
+
+```php
+public function initialize( $response, $handler, $request ) {
+	if ( ! acf_get_setting( 'rest_api_enabled' ) ) {
+		return;          // null
+	}
+	// ... no return ...
+}                        // null
+```
+
+Any 401 an earlier callback put in `$response` is discarded, and `dispatch()`
+carries on as though nothing refused the request. On `uamshealth.com` that meant
+`/wp/v2/users` answered 200 with the full staff list while the plugin was
+installed, loaded and apparently working — FR2, FR3 and FR4 were all live,
+because ACF only touches this one hook. It silently disables **any** plugin
+short-circuiting `rest_pre_dispatch` at priority 10 or earlier, including UAMS
+Sentinel's own `uams_sentinel_block_user_enum`.
+
+So FR1 now has two gates. `rest_pre_dispatch` runs at `PHP_INT_MAX`, after
+anything registered normally; and `rest_endpoints` wraps the users routes'
+`permission_callback`, which is not a chain and cannot be discarded. Either one
+alone refuses the request. `tests/test-hostile-chain.php` reproduces ACF's
+shape and asserts both.
+
+**4. T7 tests a POST, not a GET.**
 
 T7 asks for "anonymous `POST /batch/v1` containing a users GET". Batch v1
 cannot carry a GET — the `method` parameter on `/batch/v1` is an enum of
@@ -251,6 +281,11 @@ so one route check covers the batch path.
 This also means spec vector **V3 was never a read-enumeration route**. It is
 still worth covering, since a batch write to `/wp/v2/users` is a write to the
 user table.
+
+V3 is also newer than the spec assumes: `WP_REST_Users_Controller::$allow_batch`
+does not exist in WP 6.4.12 and does in 6.8.10, so on 6.4 the users routes
+cannot appear in a batch at all and core answers `rest_batch_not_allowed`. The
+suite detects this with `get_route_options()` rather than assuming.
 
 ## Layout
 

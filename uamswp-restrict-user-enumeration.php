@@ -166,6 +166,92 @@ function uamswp_rue_block_rest_users( $result, $server, $request ) {
 }
 
 /**
+ * Refuse the users routes at the route's own permission callback.
+ *
+ * The second of two independent gates, and the one that cannot be undone by
+ * anything in a filter chain: it replaces the permission callback the route
+ * was registered with, so core asks it during respond_to_request() and honours
+ * the WP_Error it returns.
+ *
+ * It exists because the first gate was observed being silently switched off in
+ * production. Advanced Custom Fields 6.4.2 hooks ACF_Rest_Api::initialize() to
+ * rest_pre_dispatch at priority 10 and never returns its input -- both the
+ * early `return;` and falling off the end yield null -- so any 401 handed to it
+ * by an earlier callback at the same priority is discarded and dispatch()
+ * carries on as though nothing refused the request. That silently disables
+ * every rest_pre_dispatch short-circuit registered at or before priority 10,
+ * not just this one.
+ *
+ * Batch sub-requests and the sub-requests _embed makes both run
+ * respond_to_request(), so this gate covers them as well.
+ *
+ * @param array<string, array<int, array<string, mixed>>> $endpoints Registered routes.
+ * @return array<string, array<int, array<string, mixed>>>
+ */
+function uamswp_rue_guard_endpoints( $endpoints ) {
+	if ( ! is_array( $endpoints ) ) {
+		return $endpoints;
+	}
+
+	foreach ( $endpoints as $route => $handlers ) {
+		if ( ! is_array( $handlers ) ) {
+			continue;
+		}
+
+		if ( ! uamswp_rue_is_users_route( uamswp_rue_normalize_route( $route ) ) ) {
+			continue;
+		}
+
+		foreach ( $handlers as $index => $handler ) {
+			if ( ! is_array( $handler ) || ! array_key_exists( 'permission_callback', $handler ) ) {
+				continue;
+			}
+
+			$endpoints[ $route ][ $index ]['permission_callback'] =
+				uamswp_rue_wrap_permission_callback( $handler['permission_callback'] );
+		}
+	}
+
+	return $endpoints;
+}
+
+/**
+ * Wrap one permission callback so anonymous callers are refused first.
+ *
+ * A logged-in caller reaches the original callback untouched, so an Editor's
+ * Author dropdown and every other authenticated use behave exactly as core
+ * decided they should.
+ *
+ * @param callable|null $original The callback the route was registered with.
+ * @return callable
+ */
+function uamswp_rue_wrap_permission_callback( $original ) {
+	return function ( $request ) use ( $original ) {
+		if ( ! is_user_logged_in() ) {
+			/** This filter is documented in uamswp-restrict-user-enumeration.php */
+			if ( apply_filters( 'uamswp_rue_block_rest_request', true, $request ) ) {
+				/** This action is documented in uamswp-restrict-user-enumeration.php */
+				do_action( 'uamswp_rue_blocked', 'rest', $request );
+
+				return new WP_Error(
+					'rest_forbidden',
+					'Authentication required.',
+					array( 'status' => 401 )
+				);
+			}
+		}
+
+		if ( is_callable( $original ) ) {
+			return call_user_func( $original, $request );
+		}
+
+		// A route registered without a usable callback is public by default in
+		// core; preserve that rather than inventing a refusal for logged-in users.
+		return true;
+	};
+}
+
+/**
  * Send anonymous ?author=N requests to the home page before the slug leaks.
  *
  * Priority 1, because core hooks redirect_canonical() to template_redirect at
@@ -244,7 +330,19 @@ function uamswp_rue_bootstrap() {
 		return;
 	}
 
-	add_filter( 'rest_pre_dispatch', 'uamswp_rue_block_rest_users', 10, 3 );
+	/*
+	 * PHP_INT_MAX, not 10. rest_pre_dispatch is a filter chain, so a later
+	 * callback that fails to return its input throws away whatever an earlier
+	 * one decided. ACF 6.4.2 does exactly that at priority 10, which was found
+	 * silently disabling this gate in production. Running last means nothing
+	 * registered normally can discard the refusal.
+	 *
+	 * Paired with the rest_endpoints gate below, which does not depend on the
+	 * filter chain at all. Either alone refuses the request; both together mean
+	 * one more badly-behaved plugin is not enough to reopen the route.
+	 */
+	add_filter( 'rest_pre_dispatch', 'uamswp_rue_block_rest_users', PHP_INT_MAX, 3 );
+	add_filter( 'rest_endpoints', 'uamswp_rue_guard_endpoints', PHP_INT_MAX );
 	add_action( 'template_redirect', 'uamswp_rue_block_author_query', 1 );
 	add_filter( 'wp_sitemaps_add_provider', 'uamswp_rue_remove_users_sitemap', 10, 2 );
 	add_filter( 'oembed_response_data', 'uamswp_rue_scrub_oembed_author', 10 );
