@@ -24,7 +24,7 @@
             "@test:killswitch"
         ],
         "test:main": "phpunit",
-        "test:killswitch": "phpunit -c phpunit-killswitch.xml.dist",
+        "test:killswitch": "phpunit -c tests/killswitch/phpunit.xml.dist",
         "lint": "phpcs",
         "lint:fix": "phpcbf"
     }
