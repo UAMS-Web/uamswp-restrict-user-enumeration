@@ -299,6 +299,7 @@ read, `tests/` and the tool configs are for whoever changes the plugin.
 | `README.md` | | This file. |
 | `docs/SPEC.md` | | The spec this was built to. |
 | `docs/AUDIT.md` | | Spec section 8, done before the code. Holds the pre-deploy baselines and what else already blocks these routes. |
+| `docs/ACF-BUG-REPORT.md` | | The upstream ACF bug that made two gates necessary, written up for WP Engine. |
 | `bin/acceptance.sh` | | Spec section 5. Run from a laptop against each site after deploy. |
 | `bin/install-wp-tests.sh` | | Sets up the WordPress test suite for local development. |
 | `tests/` | | Main suite. |
