@@ -74,7 +74,10 @@ class Test_UAMSWP_RUE_Rest_Users extends WP_Test_REST_TestCase {
 	 * The plugin registered itself where it says it does.
 	 */
 	public function test_hooks_are_registered() {
-		$this->assertSame( 10, has_filter( 'rest_pre_dispatch', 'uamswp_rue_block_rest_users' ) );
+		// PHP_INT_MAX so no normally-registered callback can discard the
+		// refusal; see tests/test-hostile-chain.php for why.
+		$this->assertSame( PHP_INT_MAX, has_filter( 'rest_pre_dispatch', 'uamswp_rue_block_rest_users' ) );
+		$this->assertNotFalse( has_filter( 'rest_endpoints', 'uamswp_rue_guard_endpoints' ) );
 	}
 
 	/**
@@ -366,12 +369,12 @@ class Test_UAMSWP_RUE_Rest_Users extends WP_Test_REST_TestCase {
 	 * T13: FR6 lets a site allow one anonymous consumer back in.
 	 */
 	public function test_filter_can_allow_an_anonymous_request() {
-		$seen = null;
+		$seen = array();
 
 		add_filter(
 			'uamswp_rue_block_rest_request',
 			static function ( $block, $request ) use ( &$seen ) {
-				$seen = $request;
+				$seen[] = $request;
 				return false;
 			},
 			10,
@@ -381,8 +384,22 @@ class Test_UAMSWP_RUE_Rest_Users extends WP_Test_REST_TestCase {
 		$response = $this->dispatch( '/wp/v2/users' );
 
 		$this->assertSame( 200, $response->get_status() );
-		$this->assertInstanceOf( 'WP_REST_Request', $seen, 'The filter was not passed the request.' );
-		$this->assertSame( '/wp/v2/users', $seen->get_route() );
+		$this->assertNotEmpty( $seen, 'The filter was not passed the request.' );
+		$this->assertInstanceOf( 'WP_REST_Request', $seen[0] );
+
+		/*
+		 * The collection route is the first thing asked about, and not the only
+		 * one: building _links, core computes targetHints for each item, which
+		 * runs the linked route's permission callback and so reaches the
+		 * endpoint gate once per user. Those extra calls are correct -- an
+		 * anonymous caller simply gets no allow hints -- so the assertion is
+		 * that the collection was asked about, not that nothing else was.
+		 */
+		$this->assertSame( '/wp/v2/users', $seen[0]->get_route() );
+
+		foreach ( $seen as $request ) {
+			$this->assertStringStartsWith( '/wp/v2/users', $request->get_route() );
+		}
 	}
 
 	/**
