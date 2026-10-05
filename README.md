@@ -309,3 +309,13 @@ read, `tests/` and the tool configs are for whoever changes the plugin.
 Nothing outside the first row should ever reach a server. `wp-content/` is
 inside the web root, and `docs/AUDIT.md` in particular is a list of what is
 currently exploitable on these exact sites.
+
+
+## Local CI
+
+```bash
+node .claude/skills/local-ci/local-ci.mjs --dry-run
+node .claude/skills/local-ci/local-ci.mjs --all
+```
+
+Private repositories validate with this runner rather than billed Actions minutes.
