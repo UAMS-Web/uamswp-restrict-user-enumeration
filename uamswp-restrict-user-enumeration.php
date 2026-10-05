@@ -38,10 +38,8 @@ define( 'UAMSWP_RUE_VERSION', '1.1.0' );
 
 /**
  * Whether the wp-config.php kill switch is set.
- *
- * @return bool
  */
-function uamswp_rue_disabled() {
+function uamswp_rue_disabled(): bool {
 	return defined( 'UAMSWP_RUE_DISABLE' ) && UAMSWP_RUE_DISABLE;
 }
 
@@ -61,7 +59,7 @@ function uamswp_rue_disabled() {
  * @param string $route Raw route from WP_REST_Request::get_route().
  * @return string Normalized route, always starting with a slash.
  */
-function uamswp_rue_normalize_route( $route ) {
+function uamswp_rue_normalize_route( $route ): string {
 	$route = strtr( (string) $route, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz' );
 
 	$collapsed = preg_replace( '#/+#', '/', $route );
@@ -80,9 +78,8 @@ function uamswp_rue_normalize_route( $route ) {
  * plugin was written to close, so the check does not depend on one function.
  *
  * @param string $route Normalized route.
- * @return bool
  */
-function uamswp_rue_is_users_route( $route ) {
+function uamswp_rue_is_users_route( $route ): bool {
 	return 1 === preg_match( '#^/wp/v2/users(/.*)?$#i', $route );
 }
 
@@ -140,7 +137,7 @@ function uamswp_rue_block_rest_users( $result, $server, $request ) {
 	$error = new WP_Error(
 		'rest_forbidden',
 		'Authentication required.',
-		array( 'status' => 401 )
+		[ 'status' => 401 ]
 	);
 
 	/*
@@ -236,7 +233,7 @@ function uamswp_rue_wrap_permission_callback( $original ) {
 				return new WP_Error(
 					'rest_forbidden',
 					'Authentication required.',
-					array( 'status' => 401 )
+					[ 'status' => 401 ]
 				);
 			}
 		}
@@ -258,10 +255,8 @@ function uamswp_rue_wrap_permission_callback( $original ) {
  * priority 10 and it redirects ?author=N to /author/<nicename>/ and exits. A
  * hook at 10 registered after core's never runs, and the slug is in the
  * Location header either way.
- *
- * @return void
  */
-function uamswp_rue_block_author_query() {
+function uamswp_rue_block_author_query(): void {
 	if ( is_user_logged_in() ) {
 		return;
 	}
@@ -322,10 +317,8 @@ function uamswp_rue_scrub_oembed_author( $data ) {
 
 /**
  * Register every hook, unless the kill switch says not to.
- *
- * @return void
  */
-function uamswp_rue_bootstrap() {
+function uamswp_rue_bootstrap(): void {
 	if ( uamswp_rue_disabled() ) {
 		return;
 	}

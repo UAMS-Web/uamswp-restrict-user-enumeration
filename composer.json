@@ -4,20 +4,28 @@
     "type": "wordpress-muplugin",
     "license": "GPL-2.0-or-later",
     "require": {
-        "php": ">=7.0"
+        "php": ">=7.1"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.6",
-        "yoast/phpunit-polyfills": "^4.0",
-        "squizlabs/php_codesniffer": "^3.9",
-        "wp-coding-standards/wpcs": "^3.1",
-        "phpcompatibility/phpcompatibility-wp": "^2.1",
         "brain/monkey": "^2.7",
-        "wp-phpunit/wp-phpunit": "~7.1.0"
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.2",
+        "laravel/pint": "^1.32",
+        "php-stubs/wordpress-stubs": "6.8",
+        "php-stubs/wp-cli-stubs": "^2.12",
+        "phpcompatibility/phpcompatibility-wp": "^2.1",
+        "phpstan/phpstan": "^2.2",
+        "phpunit/phpunit": "^9.6",
+        "rector/rector": "^2.6",
+        "squizlabs/php_codesniffer": "^3.9",
+        "szepeviktor/phpstan-wordpress": "^2.0",
+        "wp-coding-standards/wpcs": "^3.4",
+        "wp-phpunit/wp-phpunit": "~7.1.0",
+        "yoast/phpunit-polyfills": "^4.0"
     },
     "config": {
         "allow-plugins": {
-            "dealerdirect/phpcodesniffer-composer-installer": true
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "phpstan/extension-installer": true
         },
         "sort-packages": true
     },
@@ -31,7 +39,14 @@
         "lint": "phpcs",
         "lint:fix": "phpcbf",
         "test:unit": "phpunit --testsuite=Unit",
-        "test:integration": "phpunit --testsuite=Integration"
+        "test:integration": "phpunit --testsuite=Integration",
+        "stan": "phpstan analyse --no-progress --memory-limit=2G",
+        "refactor": "rector",
+        "refactor:sweep": "rector --clear-cache --config=rector-sweep.php",
+        "test:refactor": "rector --dry-run",
+        "test:refactor:sweep": "rector --dry-run --clear-cache --config=rector-sweep.php",
+        "pint": "pint",
+        "test:pint": "pint --test"
     },
     "scripts-descriptions": {
         "test": "Run both suites, each in its own process, so the Unit suite never sees WordPress.",
