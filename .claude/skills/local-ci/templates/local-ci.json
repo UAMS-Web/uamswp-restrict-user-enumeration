@@ -21,6 +21,12 @@
       "always": true
     },
     {
+      "name": "synced-files",
+      "run": "node .claude/skills/synced-files/scripts/check-synced-files.mjs",
+      "always": true,
+      "requires": ["bin:node"]
+    },
+    {
       "name": "pint",
       "run": "vendor/bin/pint --test",
       "paths": ["**/*.php", "!vendor/**", "pint.json", "composer.lock"]
