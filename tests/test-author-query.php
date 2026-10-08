@@ -87,7 +87,7 @@ class Test_UAMSWP_RUE_Author_Query extends WP_UnitTestCase {
 	 *
 	 * The draft code used priority 10, which is core's own, and a callback
 	 * added later at the same priority runs after it. This asserts the
-	 * registration; the tests below assert the behaviour it produces.
+	 * registration; the tests below assert the behavior it produces.
 	 */
 	public function test_hook_runs_before_redirect_canonical() {
 		$ours = has_action( 'template_redirect', 'uamswp_rue_block_author_query' );
@@ -185,7 +185,7 @@ class Test_UAMSWP_RUE_Author_Query extends WP_UnitTestCase {
 	 * which canonicalizes it to the author archive exactly as it always did.
 	 *
 	 * The slug is not a secret from someone who is already authenticated, and
-	 * leaving core's behaviour alone is what keeps wp-admin previews and
+	 * leaving core's behavior alone is what keeps wp-admin previews and
 	 * author-archive editing working.
 	 */
 	public function test_logged_in_author_query_is_left_to_core() {
