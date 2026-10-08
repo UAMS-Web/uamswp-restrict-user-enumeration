@@ -10,7 +10,16 @@
 
 ## Why this is a standing order
 
-**Because in every repository measured so far, nothing mechanical stands between a branch and `main`.** Measure yours against the API rather than assume it, and **state the enforcement, never the flag**: `protected: true` invites the conclusion that something gates the merge, and "unprotected" invites the conclusion that nothing is enforced; both readings have been wrong. A skipped check is not a passing check, and where remote CI is switched off, `skipped` is the normal appearance, which is precisely what makes it useless as a signal: it looks identical whether the branch is perfect or broken.
+**Because the platform requires a pull request on `main` and nothing more, and a required pull request is not a merge gate.** Two organization rulesets, both `active` since 2026-10-05, target `uams-claude-skills`, `uams-statamic`, `uamswp-migration-api` and `wordpress-importer`: `main: no deletion or force push` (rules `deletion` and `non_fast_forward`) and `main: pull request required` (rule `pull_request`). Neither has a bypass list (decided in `uams-statamic#2016`), so the rule binds administrators as well as everyone else, and a direct push to `main` is refused. The `pull_request` rule requires **no approval and no check**: `required_approving_review_count` is `0`, no reviewer is required, no thread resolution is required, and merge, squash and rebase are all allowed. A pull request opened and merged by the same account a minute later, with a red or skipped chain, satisfies it. **State the enforcement, never the flag**: `protected: true` invites the conclusion that something gates the merge, and `branches/main/protection` answering `404` invites the conclusion that nothing is enforced; both readings are wrong here, because the rulesets are neither classic branch protection nor absent. A skipped check is not a passing check, and where remote CI is switched off, `skipped` is the normal appearance, which is precisely what makes it useless as a signal: it looks identical whether the branch is perfect or broken.
+
+Read the rulesets back rather than assume them. Measured on Windows 11 with `gh`, 2026-10-05, against all four repositories (each listed the same two rulesets, ids `24525022` and `24525074`):
+
+```bash
+gh api repos/UAMS-Web/<repo>/rulesets --jq '.[] | [.id, .name, .enforcement] | @tsv'
+gh api repos/UAMS-Web/<repo>/rulesets/<id> --jq '{enforcement, bypass_actors, rules: [.rules[] | {type, parameters}]}'
+```
+
+For `main: pull request required` the second command printed `"bypass_actors":[]`, `"required_approving_review_count":0` and `"allowed_merge_methods":["merge","squash","rebase"]`. The organization endpoint (`orgs/UAMS-Web/rulesets`) answered `404` for a token without `admin:org`, so read through the repository endpoint above; that it shows bypass actors to every token is not established, and an empty list there is a reading, not the organization settings. A required status check, if one is ever added, reopens that decision.
 
 So the enforcement mechanism is **this corpus, observed voluntarily**. That is an argument for writing the procedure down precisely, not for trusting it less. **The gate being re-run and read at the merge is the only gate there is.** And **the fixes a pre-merge check produces have themselves had no review**, so a pull request that changed after its check gets another one.
 
@@ -94,6 +103,8 @@ On a red (a failing chain, or a finding a review caught on a green one) the gate
 **The pull request stays as the author set it.** `ready -> draft` is the author's own signal (it says the author pulled the work back) so a gate emitting it impersonates the author it is reporting to. And the flag is GraphQL-only: `PATCH .../pulls/{n}` ignores `draft` (step 1), so the flip would spend the quota [`github-api-budget`](github-api-budget.md) exists to protect. The verdict comment, naming the commit it validated, is the record that a finding is outstanding; the next push to the head is what asks for a re-gate.
 
 **This repository has no `handed-back` label.** Some repositories mark an outstanding finding with that label, applied by the gate and removed by a workflow on the next push to the head. A repository that adopts the label adopts that removal workflow with it, in the same change: without the workflow nothing removes the label, the author is not to remove it by hand, and the pull request drops out of a queue counted as `open AND not labelled` for good.
+
+**The workflow ships as a template** in the [`handed-back-label`](../skills/handed-back-label/SKILL.md) skill, which a repository copies to `.github/workflows/clear-handed-back.yml`, together with a drift check that fails when the copy differs from the template or is missing (UAMS-Web/uams-claude-skills#57).
 
 ## Adversarial review at the merge
 

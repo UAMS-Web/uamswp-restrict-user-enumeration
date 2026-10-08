@@ -55,7 +55,7 @@ entirely normal, nothing errors, and every route this plugin exists to close
 stays open.
 
 Everything else here is development scaffolding and belongs nowhere near a
-server — `tests/`, `bin/`, `composer.json`, the phpunit and phpcs configs, this
+server: `tests/`, `bin/`, `composer.json`, the phpunit and phpcs configs, this
 README, and especially `docs/AUDIT.md`, which is a list of what is currently
 exploitable on these exact sites. `wp-content/` is inside the web root.
 
@@ -82,7 +82,7 @@ define( 'UAMSWP_RUE_DISABLE', true );
 ```
 
 Delete that file to switch the plugin back on. It is worth preferring over
-deleting the plugin when you want the code to stay put and auditable — during a
+deleting the plugin when you want the code to stay put and auditable: during a
 soak, say, or while proving that something else is the cause of a problem.
 
 Where `wp-config.php` *is* editable, the constant goes there as normal.
@@ -90,8 +90,8 @@ Where `wp-config.php` *is* editable, the constant goes there as normal.
 Either way it is all or nothing: with the constant set the plugin registers no
 hooks at all, and the kill-switch suite asserts all four vectors come back.
 
-Do not add the `define()` to `uams-sentinel-config.php`. It would work — that
-file loads earlier — but Sentinel's own generator refuses to overwrite it and
+Do not add the `define()` to `uams-sentinel-config.php`. It would work, since that
+file loads earlier, but Sentinel's own generator refuses to overwrite it and
 its repo tells you never to regenerate it, so borrowing it couples two unrelated
 rollbacks together.
 
@@ -125,7 +125,7 @@ composer lint        # PHPCS, WordPress ruleset
 ```
 
 Verified green on **WP 6.4.12, 6.8.10, 7.0.6 and 7.1.2, single-site and
-multisite** — 16 combinations, 85 tests and 221 assertions each. 6.8.10 and
+multisite**: 16 combinations, 85 tests and 221 assertions each. 6.8.10 and
 7.0.6 are what the estate actually runs (see [docs/AUDIT.md](docs/AUDIT.md) section 3); 6.4.12 is the
 spec's stated floor and 7.1.2 is current.
 
@@ -136,9 +136,9 @@ quietly break:
   redirect to `/author/enumtarget/`, `_embed` really does hand over the slug,
   and oEmbed really does name the author. Each leak is proven real before it is
   proven closed.
-- **Core's behaviour, not just ours.** A test reflects into
+- **Core's behavior, not just ours.** A test reflects into
   `match_request_to_handler()` to assert core still routes `/wp/v2/Users` to the
-  users controller — if that ever changes, the case handling is belt and braces
+  users controller. If that ever changes, the case handling is belt and braces
   and the test says so.
 - **No collateral damage.** Posts, pages, categories, types, the REST root, the
   namespace index and a `/wp/v2/users-online` lookalike route all still answer
@@ -151,8 +151,8 @@ quietly break:
 
 These installs have no shell. The file goes up by FTP to
 `wp-content/mu-plugins/`, the checks below run from a laptop, and anything that
-has to be read from an install is a wp-admin screen — docs/AUDIT.md section 6 names
-each one. No step needs a CLI on the server.
+has to be read from an install is a wp-admin screen, and docs/AUDIT.md section 6
+names each one. No step needs a CLI on the server.
 
 ```bash
 bin/acceptance.sh https://one-site.uams.edu
@@ -166,13 +166,13 @@ says nothing about the plugin.
 
 `WARN` is neither pass nor fail and does not affect the exit status. It means
 either something real but out of scope (an SEO plugin's own author sitemap), or
-that a check could not be exercised — `_embed` proves nothing on a site with no
+that a check could not be exercised: `_embed` proves nothing on a site with no
 posts, and saying so is more honest than banking it as a pass.
 
 Every check is a GET except `check_batch`, which POSTs a users sub-request to
 `/wp-json/batch/v1`. That one earns its exception: it is the only check that
 says whether **this** plugin is loaded. A site may already have something that
-answers 401 on the plain users URLs — `sites.uams.edu` did — and every other
+answers 401 on the plain users URLs (`sites.uams.edu` did), and every other
 check passes either way. Those blockers hook once per HTTP request, so they
 only ever see the outer `/batch/v1` route and the users sub-request in the body
 goes through untouched. `rest_pre_dispatch` runs per sub-request and catches it.
@@ -188,7 +188,7 @@ Three sites already refused these routes before this plugin existed, for two
 different reasons, and neither conflicts with it. `uamsonlinedev.com` and
 `angelsguidelines.com` run Wordfence with its username-discovery option on;
 `sites.uams.edu` has something else that has not been identified. docs/AUDIT.md
-section 7 has the fingerprints. Deploy to all of them anyway — the Wordfence
+section 7 has the fingerprints. Deploy to all of them anyway: the Wordfence
 setting is a checkbox somebody can untick.
 
 Then open a post in the block editor as an Editor and confirm the Author
@@ -232,7 +232,7 @@ worse than one with a conservative header, and mu-plugins ignore these headers
 anyway.
 
 The estate was then measured: **the oldest WordPress is 6.8.10**, not 6.4, read
-from 30 of the 32 sites over HTTP, and **PHP is 8.2** — 8.2.33 on
+from 30 of the 32 sites over HTTP, and **PHP is 8.2**: 8.2.33 on
 `sites.uams.edu`, 8.2.30 on `uamshealth.com`, read from Site Health. Nothing is
 near the declared floor. See docs/AUDIT.md section 3.
 
@@ -255,7 +255,7 @@ public function initialize( $response, $handler, $request ) {
 Any 401 an earlier callback put in `$response` is discarded, and `dispatch()`
 carries on as though nothing refused the request. On `uamshealth.com` that meant
 `/wp/v2/users` answered 200 with the full staff list while the plugin was
-installed, loaded and apparently working — FR2, FR3 and FR4 were all live,
+installed, loaded and apparently working, with FR2, FR3 and FR4 all live,
 because ACF only touches this one hook. It silently disables **any** plugin
 short-circuiting `rest_pre_dispatch` at priority 10 or earlier, including UAMS
 Sentinel's own `uams_sentinel_block_user_enum`.
@@ -269,7 +269,7 @@ shape and asserts both.
 **4. T7 tests a POST, not a GET.**
 
 T7 asks for "anonymous `POST /batch/v1` containing a users GET". Batch v1
-cannot carry a GET — the `method` parameter on `/batch/v1` is an enum of
+cannot carry a GET: the `method` parameter on `/batch/v1` is an enum of
 `POST, PUT, PATCH, DELETE` (`class-wp-rest-server.php:131-135`), so core
 rejects it with a 400 during parameter validation, before any filter runs. The
 suite asserts that constraint explicitly in
