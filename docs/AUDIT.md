@@ -6,9 +6,9 @@ that still needs a live install to answer.
 
 Sources: local clones of `uams-2020`, `UAMSWP-Find-a-Doc` and
 `UAMSWP-People-Showcase`; GitHub code search across all 89 repositories in the
-`UAMS-Web` organisation; shallow clones of `UAMSWP-Sentinel`,
+`UAMS-Web` organization; shallow clones of `UAMSWP-Sentinel`,
 `UAMSWP-Sentinel-configs` and `uamswp-seopress`; and anonymous HTTP against the
-estate — a full vector run on `<primary-site>` and a WordPress version sweep of
+estate: a full vector run on `<primary-site>` and a WordPress version sweep of
 all 32 sites.
 
 These installs have no shell, so nothing below was gathered with a CLI on a
@@ -19,7 +19,7 @@ named wp-admin screen.
 
 ## 1. Who calls the routes this plugin closes
 
-### `wp/v2/users` — two hits, neither of them blocked by this plugin
+### `wp/v2/users`: two hits, neither of them blocked by this plugin
 
 **`UAMS-Web/epic-to-uamshealth`**
 `.claude/skills/uamshealth-provider-drafts/scripts/fill-provider.js:144`
@@ -52,7 +52,7 @@ none were in the spec:
 
 2. **Sentinel's own blocker has the case bug.** The optional
    `uams_sentinel_block_user_enum` toggle matches
-   `'#^/wp/v2/users(?:/|$)#'` — no `i` flag, the same defect the spec found in
+   `'#^/wp/v2/users(?:/|$)#'`, with no `i` flag, the same defect the spec found in
    the draft code. It is bypassable by `/wp/v2/Users`. Recommendation: leave
    that toggle **off** and let this plugin be the control. If it is already on
    somewhere, nothing breaks (both answer 401 and whichever runs second
@@ -65,22 +65,22 @@ none were in the spec:
 
 No hits in `uams-2020`, `UAMSWP-Find-a-Doc` or `UAMSWP-People-Showcase`.
 
-### `_embed` — nothing, anywhere
+### `_embed`: nothing, anywhere
 
 Zero hits org-wide for `?_embed`, `&_embed`, `_embed=true` and `_embed:`. Every
 local match for the bare string is something else:
 
-- `UAMSWP-Find-a-Doc` — `clinical_resource_nci_embed`, an ACF field
+- `UAMSWP-Find-a-Doc`: `clinical_resource_nci_embed`, an ACF field
   (`includes/class.fad-custom-post.php:5113`, `templates/single-clinical-resource.php:300`,
   and the matching `acf-json` group). Not the REST parameter.
-- `uams-2020` — `assets/scss/uams-supporting/file.scss:33`, a commented-out
+- `uams-2020`: `assets/scss/uams-supporting/file.scss:33`, a commented-out
   `.wp-block-file__embed` rule.
 
 The spec's "a template relies on `_embed` for author names" risk does not
 apply to any repository in the org. It can still apply to a headless consumer
 outside GitHub; the live check in `bin/acceptance.sh` covers that.
 
-### `?author=` — one hit, commented out
+### `?author=`: one hit, commented out
 
 `uamswp-people-showcase/utils.php:299`
 
@@ -101,8 +101,8 @@ namespace, anonymously, and plugins that register routes name themselves there:
 curl -s "https://<site>/wp-json/" | jq -r '.namespaces[]'
 ```
 
-That is not the full active-plugin list — a plugin with no REST routes is
-invisible to it — but it settled the questions this audit actually needed, and
+That is not the full active-plugin list (a plugin with no REST routes is
+invisible to it), but it settled the questions this audit actually needed, and
 it is a good first pass before anyone opens 32 wp-admins. The sweep is in
 section 7. Plugins with no REST routes still need **Plugins > Installed
 Plugins > Active**, plus **Network Admin > Plugins** on each multisite.
@@ -115,7 +115,7 @@ What the repositories and the sweep settle:
 (`src/Actions/Sitemap/Render.php:112-128`).
 
 **The exception is `angelsguidelines.com`, which runs All in One SEO instead**
-(`aioseoTableOfContents/v1`), on an otherwise unrelated stack — welaunch,
+(`aioseoTableOfContents/v1`), on an otherwise unrelated stack: welaunch,
 themeco, gtm4wp. Section 8 asked to flag Yoast or Rank Math; AIOSEO is the one
 actually present, and it has an `author-sitemap.xml` of its own. On that site it
 is not serving: `/author-sitemap.xml` returns 302 and `/sitemap.xml` redirects
@@ -130,7 +130,7 @@ re-checking if anyone turns it on.
 - Off unless someone turned it on: `SitemapOption::authorIsEnable()`
   (`src/Services/Options/SitemapOption.php:83-85`) reads an option that is unset
   by default.
-- On `<primary-site>` it is off — `/author.xml` returns 404.
+- On `<primary-site>` it is off: `/author.xml` returns 404.
 - FR3 removes the *core* provider only. This is out of scope by the spec's own
   decision, so `bin/acceptance.sh` reports `/author.xml` as a **warning** rather
   than a failure: it will not block a deploy, and it will not be silent either.
@@ -139,8 +139,8 @@ re-checking if anyone turns it on.
 **FR3 is still needed despite SEOPress.** SEOPress redirects `/wp-sitemap.xml`,
 `/sitemap.xml` and `/sitemap_index.xml`, and nothing else. `/wp-sitemap-users-1.xml`
 is served by core directly and is not on that list. (On `<primary-site>` it
-already 404s, so core sitemaps appear to be off there by some other means —
-worth noting that FR3 will be a no-op on some sites and load-bearing on others.)
+already 404s, so core sitemaps appear to be off there by some other means.
+Worth noting that FR3 will be a no-op on some sites and load-bearing on others.)
 
 **No conflict between SEOPress and FR2.** Both are on `template_redirect`.
 FR2's callback returns immediately unless `$_GET['author']` is set, so it never
@@ -153,7 +153,7 @@ stands between SEOPress and a sitemap URL.
 There is no shell on these installs, so both halves of this were approached as
 an HTTP question first and a wp-admin question second.
 
-### WordPress — measured, 30 of 32, over HTTP
+### WordPress: measured, 30 of 32, over HTTP
 
 Feeds carry the version in their `<generator>` tag, so the whole estate can be
 read anonymously from a laptop with no wp-admin and no CLI:
@@ -167,7 +167,7 @@ Swept 2026-09-23:
 | Version | Installs |
 |---|---|
 | **7.1.2** | <dev-site> |
-| **7.0.6** | 26 installs — aging, cancer, communications, communityhealth, giving, go, healthprofessions, hr, medicine, nursing, nwa, partnerships, pharmacy, psychiatry, publichealth, regionalcampuses, research, sites, students, tri, uams-academy, uamsdev, uamshealth, uamsonlinedev, uasys, web |
+| **7.0.6** | 26 installs: aging, cancer, communications, communityhealth, giving, go, healthprofessions, hr, medicine, nursing, nwa, partnerships, pharmacy, psychiatry, publichealth, regionalcampuses, research, sites, students, tri, uams-academy, uamsdev, uamshealth, uamsonlinedev, uasys, web |
 | **6.8.10** | idhi, news, uamscaregiving |
 | unread | angelsguidelines.com (200, no feed), uams-pepper.bigscoots-wpo.com (no response) |
 
@@ -186,7 +186,7 @@ The two unread sites should be checked at **Tools > Site Health > Info >
 WordPress** when someone is next in their wp-admin. Neither is a production
 `uams.edu` site.
 
-### PHP — measured, 8.2.x
+### PHP: measured, 8.2.x
 
 BigScoots strips `X-Powered-By` (`server: BigScoots Gateway/1.0.0` is all that
 comes back) and the Site Health REST endpoints need authentication, so this one
@@ -235,7 +235,7 @@ apiece, all green. 6.8.10 and 7.0.6 are the versions the estate actually runs;
 6.4.12 is the spec's stated floor and 7.1.2 is current, so the bracket holds on
 both sides of what is deployed.
 
-Note that mu-plugins ignore `Requires at least` and `Requires PHP` — they always
+Note that mu-plugins ignore `Requires at least` and `Requires PHP`: they always
 load. The header is documentation, which is another reason to declare the floor
 the code actually needs rather than the one the estate happens to run.
 
@@ -278,15 +278,15 @@ estate that short-circuits `rest_pre_dispatch` with a `WP_Error` is.
 
 | Check | Result |
 |---|---|
-| `/wp-json/wp/v2/users` | **200** — leaking |
-| `/wp-json/wp/v2/Users` | **200** — the case bypass, confirmed on a live server |
+| `/wp-json/wp/v2/users` | **200**, leaking |
+| `/wp-json/wp/v2/Users` | **200**, the case bypass, confirmed on a live server |
 | `/wp-json/wp/v2/USERS` | **200** |
 | `/wp-json/wp/v2/users/1` | **200** |
-| `/wp-json/wp/v2/users/` | **200** — trailing slash is served, so T4 is a real vector |
+| `/wp-json/wp/v2/users/` | **200**, trailing slash is served, so T4 is a real vector |
 | `/?rest_route=/wp/v2/users` | **200** |
 | `/?rest_route=/wp/v2/Users` | **200** |
 | `/wp/v2/posts?_embed=author` | embedded author resolved |
-| `/?author=1` | **301 to `/author/<author-slug>/`** — slug leaked |
+| `/?author=1` | **301 to `/author/<author-slug>/`**, slug leaked |
 | oEmbed | `author_name=<staff name>`, `author_url=.../author/<author-slug>/` |
 | `/wp-sitemap-users-1.xml` | 404 already |
 | `/author.xml` (SEOPress) | 404, author sitemap off |
@@ -303,10 +303,10 @@ production BigScoots-hosted install, not just against core source.
 be found.** Searched all 89 `UAMS-Web` repositories and the personal repositories
 for monitor, sentinel, security, uptime and watch. What exists is:
 
-- `UAMS-Web/UAMSWP-Sentinel` — in-WordPress, scheduled scan plus a rendered-page
+- `UAMS-Web/UAMSWP-Sentinel`: in-WordPress, scheduled scan plus a rendered-page
   check, one Healthchecks.io heartbeat per site. Not an external hourly URL
   monitor.
-- `bpmore/sky-sentinel` — a generic fork of the same plugin.
+- `bpmore/sky-sentinel`: a generic fork of the same plugin.
 
 Someone needs to name the monitor. `bin/acceptance.sh` exits non-zero if any
 check fails and takes `-f sites.txt`, so it drops into a cron entry or a CI
@@ -315,17 +315,17 @@ schedule without modification.
 **Other items for the deploy.** There is no shell on these installs, so each of
 these is a wp-admin screen or an HTTP request, never a `wp` command:
 
-- **Active plugins per install** — Plugins > Installed Plugins > Active, and
+- **Active plugins per install**: Plugins > Installed Plugins > Active, and
   Network Admin > Plugins on each multisite. Flag any other SEO plugin with an
   author sitemap; check Yoast's `/author-sitemap.xml` and Rank Math's
   `/author-sitemap.xml` the same way `bin/acceptance.sh` already checks
   SEOPress's `/author.xml`, and turn the feature off in the plugin's own
   settings rather than trying to block the URL.
-- **PHP version per install** — Tools > Site Health > Info > Server.
-- **WordPress version for the two unread sites** — Tools > Site Health > Info >
+- **PHP version per install**: Tools > Site Health > Info > Server.
+- **WordPress version for the two unread sites**: Tools > Site Health > Info >
   WordPress, for `angelsguidelines.com` and `uams-pepper.bigscoots-wpo.com`.
   The other 30 were read over HTTP in section 3.
-- **The optional edge rule in spec section 6** — whether BigScoots will do it at
+- **The optional edge rule in spec section 6**: whether BigScoots will do it at
   the server level is unknown and needs a support ticket. The plugin remains
   the actual control either way.
 
@@ -354,12 +354,12 @@ deployed anywhere. They are not all the same thing, and the difference matters.
 ### Wordfence, on `uamsonlinedev.com` and `angelsguidelines.com`
 
 Both carry the `wordfence/v1` and `wordfence-login-security/v1` namespaces; no
-other site in the estate does. The behaviour is Wordfence's **"Prevent
+other site in the estate does. The behavior is Wordfence's **"Prevent
 discovery of usernames through '/?author=N' scans, the oEmbed API, the
 WordPress REST API, and WordPress XML Sitemaps"** option, which is on by
 default in both the free and paid versions.
 
-The fingerprint is distinctive — it reuses core's own wording rather than
+The fingerprint is distinctive: it reuses core's own wording rather than
 inventing a message:
 
 | Request | Answer |
@@ -369,7 +369,7 @@ inventing a message:
 | `?author=1` | 404 |
 | `_embed=author` | embedded author is `rest_user_invalid_id` |
 | users sitemap | blocked |
-| **batch sub-request** | **401 — Wordfence does catch this** |
+| **batch sub-request** | **401, Wordfence does catch this** |
 
 Note the last row. Wordfence blocks per dispatch, so it covers the batch
 envelope, which is more than the `sites.uams.edu` blocker manages. It also
@@ -382,13 +382,13 @@ Wordfence option is a checkbox someone can turn off, and this plugin is not.
 
 ### Something unidentified, on `sites.uams.edu`
 
-Not Wordfence — that site's namespaces are `sweep/v1`, `search-regex/v1`,
+Not Wordfence: that site's namespaces are `sweep/v1`, `search-regex/v1`,
 `seopress/v1`, `wp-mail-smtp/v1`, `genesis/v1`. Whatever it is registers no
 REST routes of its own, which fits an mu-plugin or a snippet in a theme.
 
 Its pre-deploy fingerprint, which is **not** Wordfence's:
 
-- `rest_forbidden`, "Authentication required." — the wording from this spec,
+- `rest_forbidden`, "Authentication required.", which is the wording from this spec,
   not from core
 - case-insensitive: `/wp/v2/Users` and `/wp/v2/USERS` both refused
 - `?author=1` → **301 to the home page**, where Wordfence 404s
@@ -398,7 +398,7 @@ Its pre-deploy fingerprint, which is **not** Wordfence's:
 That last point is the important one. It only ever sees the outer HTTP request,
 which is the signature of a hook like `rest_authentication_errors` rather than
 `rest_pre_dispatch`. Everything else about it looks like a competent
-implementation of FR1 through FR4 — so most likely someone has already applied
+implementation of FR1 through FR4, so most likely someone has already applied
 a version of this fix there, using the wrong hook for the batch vector.
 
 **It cannot be identified from outside**, because this plugin now returns the
@@ -418,7 +418,7 @@ and is unassessed.
 
 ## Appendix: the 32 installs
 
-From the directory names in `UAMS-Web/UAMSWP-Sentinel-configs`. Hostnames only —
+From the directory names in `UAMS-Web/UAMSWP-Sentinel-configs`. Hostnames only:
 those files hold per-site signing keys and webhook URLs and nothing was copied
 out of them.
 
