@@ -6,7 +6,55 @@ Everything above the generated section below belongs to this repository and is e
 
 ## About this repository
 
-Replace this section with what an agent needs to know before working here: what the repository is, how to install and run it, how to run its tests and checks, the conventions it follows, and anything that is true of this repository alone. The shared skills and rules below cover the organization-wide conventions; do not repeat them here.
+A single-file WordPress must-use plugin that refuses every known unauthenticated route to a username or an author slug. Built to [`docs/SPEC.md`](docs/SPEC.md); the pre-deploy audit that spec asked for is [`docs/AUDIT.md`](docs/AUDIT.md), and it holds the live baselines, the estate inventory, and what else on the estate already blocks these routes.
+
+### One file ships
+
+`uamswp-restrict-user-enumeration.php` is the only file that belongs on a server, and it goes in the root of `wp-content/mu-plugins/`. `wp_get_mu_plugins()` does a flat `readdir` and keeps only `*.php`, so a copy one directory down is never loaded: the site looks normal, nothing errors, and every route the plugin exists to close stays open. Everything else here is development and deployment tooling, and `docs/AUDIT.md` in particular must not reach a server, because `wp-content/` is inside the web root and that file lists what is currently exploitable.
+
+### The target estate has no shell
+
+The BigScoots-hosted installs give no CLI, so nothing here may assume one. Deployment is FTP into `mu-plugins/`. Anything that has to be read back from an install is either an HTTP request or a named wp-admin screen; `docs/AUDIT.md` section 6 lists which. `wp-config.php` is not editable either, so the `UAMSWP_RUE_DISABLE` kill switch ships as an mu-plugin whose name sorts before the plugin's (`wp_get_mu_plugins()` sorts), not as a `wp-config.php` edit.
+
+### Running the checks
+
+```bash
+composer install
+composer test   # Unit, Legacy and the kill switch
+composer lint   # PHPCS, security sniffs
+```
+
+Three suites, in two configurations, because PHPUnit takes one bootstrap per configuration file and each suite needs a different one:
+
+| Suite | Config | Bootstrap | What it is |
+| --- | --- | --- | --- |
+| `Unit` | `phpunit.xml.dist` | Brain Monkey, no WordPress | the shared harness, where new tests go |
+| `Integration` | `phpunit.xml.dist` | wp-phpunit, real WordPress | empty so far, opt-in, see below |
+| `Legacy` | `tests-legacy/phpunit.xml.dist` | the WordPress test library | 79 tests pinning FR1 through FR7 |
+| kill switch | `tests-legacy/killswitch/phpunit.xml.dist` | its own process | 6 tests, see below |
+
+`composer test` runs Unit, Legacy and the kill switch: 86 tests. **Keep the Legacy suite in it until #8 migrates those tests to Pest.** They are what gates the plugin's behavior on four production installs, and a `composer test` that reached only the Unit suite would pass on one smoke test. PHPUnit 9.6 has no fail-on-empty-suite option, so the guard is structural rather than a flag.
+
+The kill switch needs its own process: `UAMSWP_RUE_DISABLE` is read when the plugin file is first included and a PHP constant cannot be undefined afterward.
+
+`test:integration` is not in `composer test` because `tests/Integration/` holds no tests yet and the suite refuses without a WordPress to boot. It locates one through `WP_TESTS_ABSPATH`, defaulting to the install this checkout sits inside:
+
+```bash
+wp core download --path=/tmp/wordpress
+WP_TESTS_ABSPATH=/tmp/wordpress composer test:integration
+```
+
+The Legacy suite uses the older arrangement instead: `bin/install-wp-tests.sh` puts the WordPress test library under the system temp directory, found through `WP_TESTS_DIR`. macOS clears that directory periodically, so when the Legacy suite suddenly cannot run, re-run the installer before looking for anything subtler. The MySQL databases survive; only the core downloads go. The two mechanisms coexist until the Legacy suite retires with #8.
+
+### Verifying a deploy
+
+`bin/acceptance.sh <origin>` checks a live site as an anonymous visitor, and takes `-f <file>` for a list. Every check is a GET except `check_batch`, which is the only one that distinguishes this plugin from something else that happens to answer 401 on the plain users URLs. Run it against the canonical origin; it warns when the host redirects. Site lists are deliberately untracked, see `.gitignore`.
+
+### Conventions specific to this plugin
+
+- **The declared `Requires at least` and `Requires PHP` are deliberately below what the estate runs.** They state what the code actually needs, so a version assumption cannot stop a security control from loading. Keep them that way, and keep new code inside them.
+- **FR1 is enforced at two independent gates**, `rest_pre_dispatch` at `PHP_INT_MAX` and a `rest_endpoints` permission-callback wrapper. This is not belt and braces: a third-party plugin was found discarding the first gate's return value in production, which is written up in [`docs/ACF-BUG-REPORT.md`](docs/ACF-BUG-REPORT.md) and regression-tested in `tests/test-hostile-chain.php`. Either gate alone refuses the request. Do not reduce it to one.
+- **Every vector has a control test** that removes the plugin's hook and asserts the leak is real. A test that only proves the closed state cannot tell a working guard from an absent vector.
 
 <!-- uams-claude-skills:begin -->
 ## Shared skills and rules
@@ -39,5 +87,5 @@ Profiles for this repository: core, php, wordpress-plugin, tests, quality, local
 - `sync-pr-branch`: Sync every PR branch from `origin/main` before the gating run. Full text: [`.claude/rules/sync-pr-branch.md`](.claude/rules/sync-pr-branch.md).
 - `worktrees`: Work from stable, pre-bootstrapped worktree slots (branch work never happens in the primary checkout). Full text: [`.claude/rules/worktrees.md`](.claude/rules/worktrees.md).
 
-Skills: [`code-quality`](.claude/skills/code-quality/SKILL.md), [`local-ci`](.claude/skills/local-ci/SKILL.md), [`php-coding-standards`](.claude/skills/php-coding-standards/SKILL.md), [`php-documentation`](.claude/skills/php-documentation/SKILL.md), [`security-audit`](.claude/skills/security-audit/SKILL.md), [`tests`](.claude/skills/tests/SKILL.md), [`update-dependencies-ticket`](.claude/skills/update-dependencies-ticket/SKILL.md), [`upstream-patch-lifecycle`](.claude/skills/upstream-patch-lifecycle/SKILL.md), [`writing-comments`](.claude/skills/writing-comments/SKILL.md), [`writing-commits`](.claude/skills/writing-commits/SKILL.md), [`writing-issues`](.claude/skills/writing-issues/SKILL.md), [`writing-pull-requests`](.claude/skills/writing-pull-requests/SKILL.md), [`writing-release-notes`](.claude/skills/writing-release-notes/SKILL.md).
+Skills: [`code-quality`](.claude/skills/code-quality/SKILL.md), [`handed-back-label`](.claude/skills/handed-back-label/SKILL.md), [`local-ci`](.claude/skills/local-ci/SKILL.md), [`php-coding-standards`](.claude/skills/php-coding-standards/SKILL.md), [`php-documentation`](.claude/skills/php-documentation/SKILL.md), [`security-audit`](.claude/skills/security-audit/SKILL.md), [`synced-files`](.claude/skills/synced-files/SKILL.md), [`tests`](.claude/skills/tests/SKILL.md), [`update-dependencies-ticket`](.claude/skills/update-dependencies-ticket/SKILL.md), [`upstream-patch-lifecycle`](.claude/skills/upstream-patch-lifecycle/SKILL.md), [`writing-comments`](.claude/skills/writing-comments/SKILL.md), [`writing-commits`](.claude/skills/writing-commits/SKILL.md), [`writing-issues`](.claude/skills/writing-issues/SKILL.md), [`writing-pull-requests`](.claude/skills/writing-pull-requests/SKILL.md), [`writing-release-notes`](.claude/skills/writing-release-notes/SKILL.md).
 <!-- uams-claude-skills:end -->
