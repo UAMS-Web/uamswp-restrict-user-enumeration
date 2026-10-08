@@ -1,0 +1,72 @@
+{
+  "_note": "Jobs mirror composer.json's scripts. This repository has no Pint, Rector, PHPStan or Pest, so those template jobs are absent rather than stubbed.",
+  "base": "main",
+  "php": "8.2",
+  "chain": false,
+  "guard": {
+    "_note": "uams-sentinel-config.php is named because this estate's copies carry per-site baseline signing keys and a Teams webhook URL, and the file is a plain list of define() calls that reads like ordinary source. Site lists are gitignored; the guard is the backstop for a --force.",
+    "deny": [
+      "wp-config\\.php$",
+      "uams-sentinel-config\\.php$",
+      "\\.sql(\\.gz)?$",
+      "\\.(csv|tsv|xlsx?)$",
+      "\\.env(\\.|$)",
+      "\\.pem$",
+      "\\.key$",
+      "(^|/)sites(-.*)?\\.txt$",
+      "\\.sites\\.txt$"
+    ]
+  },
+  "jobs": [
+    {
+      "name": "lint",
+      "run": "php -l",
+      "each": ["**/*.php", "!vendor/**"],
+      "always": true
+    },
+    {
+      "name": "synced-files",
+      "run": "node .claude/skills/synced-files/scripts/check-synced-files.mjs",
+      "always": true,
+      "requires": ["bin:node"]
+    },
+    {
+      "name": "phpcs",
+      "_note": "phpcs.xml.dist scopes this to the one shipped file, so the plugin and its config are the only inputs.",
+      "run": "vendor/bin/phpcs",
+      "paths": [
+        "uamswp-restrict-user-enumeration.php",
+        "phpcs.xml.dist",
+        "composer.lock"
+      ]
+    },
+    {
+      "name": "phpunit",
+      "_note": "Needs the WordPress test library, which install-wp-tests.sh puts under the system temp directory and macOS clears periodically. A failure here that names a missing bootstrap is that, not a regression; re-run bin/install-wp-tests.sh. It cannot be a requires entry, because the path is outside the repository.",
+      "run": "vendor/bin/phpunit",
+      "paths": [
+        "uamswp-restrict-user-enumeration.php",
+        "tests/**",
+        "phpunit.xml.dist",
+        "composer.lock"
+      ]
+    },
+    {
+      "name": "phpunit-killswitch",
+      "_note": "FR5 decides at include time and a PHP constant cannot be undefined, so the kill switch needs its own process and its own config.",
+      "run": "vendor/bin/phpunit -c tests/killswitch/phpunit.xml.dist",
+      "paths": [
+        "uamswp-restrict-user-enumeration.php",
+        "tests/**",
+        "composer.lock"
+      ]
+    },
+    {
+      "name": "acceptance-syntax",
+      "_note": "bin/acceptance.sh runs against live sites and is never executed by CI. This only proves it parses.",
+      "run": "bash -n bin/acceptance.sh",
+      "paths": ["bin/acceptance.sh"],
+      "requires": ["bin:bash"]
+    }
+  ]
+}

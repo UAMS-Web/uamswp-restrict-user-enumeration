@@ -31,6 +31,26 @@ The suite installs the WordPress test library under the system temp directory, w
 
 Set `WP_TESTS_DIR` to run against another WordPress version. The estate runs more than one, so changes to the plugin are verified against each (see `docs/AUDIT.md` section 3 for which).
 
+### Running the checks locally (local CI)
+
+Remote CI is off for this repository, so the shared runner is the whole gate:
+
+```bash
+node .claude/skills/local-ci/local-ci.mjs            # jobs the diff selects
+node .claude/skills/local-ci/local-ci.mjs --dry-run  # the plan, and why
+node .claude/skills/local-ci/local-ci.mjs --all      # everything
+```
+
+`local-ci.json` lists the jobs and mirrors `composer.json`'s scripts. Read the exit status without a pipe in between: a pipe throws it away, and the summary is a cross-check rather than the contract.
+
+Each clone needs the commit guard wired once, because git does not run hooks from inside the repository until told to:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+That hook reads the same `guard.deny` list the runner checks, so the list lives in one place. `uams-sentinel-config.php` is on it deliberately: the estate's copies carry per-site baseline signing keys and a webhook URL, and the file is a plain list of `define()` calls that reads like ordinary source.
+
 ### Verifying a deploy
 
 `bin/acceptance.sh <origin>` checks a live site as an anonymous visitor, and takes `-f <file>` for a list. Every check is a GET except `check_batch`, which is the only one that distinguishes this plugin from something else that happens to answer 401 on the plain users URLs. Run it against the canonical origin; it warns when the host redirects. Site lists are deliberately untracked, see `.gitignore`.
