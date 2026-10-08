@@ -25,6 +25,12 @@
     <exclude-pattern>vendor/*</exclude-pattern>
     <exclude-pattern>node_modules/*</exclude-pattern>
     <exclude-pattern>tests/*</exclude-pattern>
+    <!--
+      tests-legacy/ holds the behavioral suite until #8 migrates it to Pest.
+      Excluded for the same reason tests/ is: it is not shipped code, and the
+      security sniffs this ruleset keeps are about what reaches a visitor.
+    -->
+    <exclude-pattern>tests-legacy/*</exclude-pattern>
 
     <arg name="extensions" value="php"/>
     <arg value="sp"/>
