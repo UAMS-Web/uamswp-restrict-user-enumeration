@@ -20,16 +20,31 @@ The BigScoots-hosted installs give no CLI, so nothing here may assume one. Deplo
 
 ```bash
 composer install
-bin/install-wp-tests.sh wordpress_test root '' 127.0.0.1 latest
-composer test   # both suites
-composer lint   # PHPCS, WordPress ruleset
+composer test   # Unit, Legacy and the kill switch
+composer lint   # PHPCS, security sniffs
 ```
 
-Two PHPUnit suites, not one. The kill switch is decided when the plugin file is first included and a PHP constant cannot be undefined afterward, so that suite needs its own process and carries its own config at `tests/killswitch/phpunit.xml.dist`. `composer test` runs both.
+Three suites, in two configurations, because PHPUnit takes one bootstrap per configuration file and each suite needs a different one:
 
-The suite installs the WordPress test library under the system temp directory, which macOS clears periodically. When the suite suddenly cannot run, re-run `bin/install-wp-tests.sh` before looking for anything subtler. The MySQL databases survive; only the core downloads go.
+| Suite | Config | Bootstrap | What it is |
+| --- | --- | --- | --- |
+| `Unit` | `phpunit.xml.dist` | Brain Monkey, no WordPress | the shared harness, where new tests go |
+| `Integration` | `phpunit.xml.dist` | wp-phpunit, real WordPress | empty so far, opt-in, see below |
+| `Legacy` | `tests-legacy/phpunit.xml.dist` | the WordPress test library | 79 tests pinning FR1 through FR7 |
+| kill switch | `tests-legacy/killswitch/phpunit.xml.dist` | its own process | 6 tests, see below |
 
-Set `WP_TESTS_DIR` to run against another WordPress version. The estate runs more than one, so changes to the plugin are verified against each (see `docs/AUDIT.md` section 3 for which).
+`composer test` runs Unit, Legacy and the kill switch: 86 tests. **Keep the Legacy suite in it until #8 migrates those tests to Pest.** They are what gates the plugin's behavior on four production installs, and a `composer test` that reached only the Unit suite would pass on one smoke test. PHPUnit 9.6 has no fail-on-empty-suite option, so the guard is structural rather than a flag.
+
+The kill switch needs its own process: `UAMSWP_RUE_DISABLE` is read when the plugin file is first included and a PHP constant cannot be undefined afterward.
+
+`test:integration` is not in `composer test` because `tests/Integration/` holds no tests yet and the suite refuses without a WordPress to boot. It locates one through `WP_TESTS_ABSPATH`, defaulting to the install this checkout sits inside:
+
+```bash
+wp core download --path=/tmp/wordpress
+WP_TESTS_ABSPATH=/tmp/wordpress composer test:integration
+```
+
+The Legacy suite uses the older arrangement instead: `bin/install-wp-tests.sh` puts the WordPress test library under the system temp directory, found through `WP_TESTS_DIR`. macOS clears that directory periodically, so when the Legacy suite suddenly cannot run, re-run the installer before looking for anything subtler. The MySQL databases survive; only the core downloads go. The two mechanisms coexist until the Legacy suite retires with #8.
 
 ### Verifying a deploy
 
