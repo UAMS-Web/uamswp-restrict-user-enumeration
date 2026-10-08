@@ -24,14 +24,15 @@
     "scripts": {
         "test": [
             "@test:unit",
-            "@test:integration"
+            "@test:legacy",
+            "@test:killswitch"
         ],
-        "test:main": "phpunit",
-        "test:killswitch": "phpunit -c tests/killswitch/phpunit.xml.dist",
-        "lint": "phpcs",
-        "lint:fix": "phpcbf",
         "test:unit": "phpunit --testsuite=Unit",
-        "test:integration": "phpunit --testsuite=Integration"
+        "test:integration": "phpunit --testsuite=Integration",
+        "test:legacy": "phpunit -c tests-legacy/phpunit.xml.dist",
+        "test:killswitch": "phpunit -c tests-legacy/killswitch/phpunit.xml.dist",
+        "lint": "phpcs",
+        "lint:fix": "phpcbf"
     },
     "scripts-descriptions": {
         "test": "Run both suites, each in its own process, so the Unit suite never sees WordPress.",
