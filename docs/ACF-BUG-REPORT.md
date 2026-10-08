@@ -18,7 +18,7 @@ about ACF, and which of our sites were affected is not WP Engine's business.
 
 Duplicate of #1000, which reports the same defect with the same suggested fix, and predates this by seven months. Also overlaps #988.
 
-Closing in favour of #1000 and moving the corroborating detail there as a comment, rather than leaving a third open issue for maintainers to reconcile. Apologies for the noise — I should have searched the tracker before opening this.
+Closing in favor of #1000 and moving the corroborating detail there as a comment, rather than leaving a third open issue for maintainers to reconcile. Apologies for the noise: I should have searched the tracker before opening this.
 
 ---
 
@@ -26,7 +26,7 @@ Closing in favour of #1000 and moving the corroborating detail there as a commen
 
 Corroborating from a third production estate, with a consequence class not yet represented in this thread and a workaround that does not depend on priority.
 
-**What it cost us.** A must-use plugin refusing unauthenticated access to `/wp/v2/users`. It was installed, loaded, correctly registered and demonstrably running — its three non-REST hooks all worked — while the endpoint it exists to close kept answering `200` with the full staff list: logins, display names mapping people to departments, and paginated, so `?per_page=100&page=N` walks the whole directory. Unauthenticated PII exposure rather than a rate limiter going quiet, but the same silent-failure shape: nothing logged, nothing to notice, and every other part of the plugin visibly healthy.
+**What it cost us.** A must-use plugin refusing unauthenticated access to `/wp/v2/users`. It was installed, loaded, correctly registered and demonstrably running (its three non-REST hooks all worked) while the endpoint it exists to close kept answering `200` with the full staff list: logins, display names mapping people to departments, and paginated, so `?per_page=100&page=N` walks the whole directory. Unauthenticated PII exposure rather than a rate limiter going quiet, but the same silent-failure shape: nothing logged, nothing to notice, and every other part of the plugin visibly healthy.
 
 That last detail is what made it hard. Because ACF touches only `rest_pre_dispatch`, the plugin's other three hooks (`template_redirect`, `oembed_response_data`, `wp_sitemaps_add_provider`) all behaved correctly. Three of four requirements passing is a very convincing picture of a working deployment.
 
@@ -43,7 +43,7 @@ That last detail is what made it hard. Because ACF touches only `rest_pre_dispat
 
 The plugin at priority 11 on the same site worked correctly throughout, which is the tell: whether a gate works depends only on whether it registered before or after ACF.
 
-**On the priority-99 workaround.** Agreed that it is fragile, and for a security control that fragility is the whole problem — it trades one ordering assumption for another. What we settled on is two gates, the second of which is not a filter chain and so has nothing to discard:
+**On the priority-99 workaround.** Agreed that it is fragile, and for a security control that fragility is the whole problem: it trades one ordering assumption for another. What we settled on is two gates, the second of which is not a filter chain and so has nothing to discard:
 
 ```php
 // Gate 1: after anything registered normally.
@@ -174,7 +174,7 @@ public function initialize( $response, $handler, $request ) {
 }
 ```
 
-`initialize()` does not modify `$response` and is not meant to, so returning it unchanged preserves ACF's behaviour exactly while restoring the filter contract. If the intent is a side effect rather than a filter, an action would be the more thorough fix, but returning `$response` resolves the reported problem completely.
+`initialize()` does not modify `$response` and is not meant to, so returning it unchanged preserves ACF's behavior exactly while restoring the filter contract. If the intent is a side effect rather than a filter, an action would be the more thorough fix, but returning `$response` resolves the reported problem completely.
 
 **Screenshots or Video**
 
