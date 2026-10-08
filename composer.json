@@ -32,14 +32,15 @@
     "scripts": {
         "test": [
             "@test:unit",
-            "@test:integration"
+            "@test:legacy",
+            "@test:killswitch"
         ],
-        "test:main": "phpunit",
-        "test:killswitch": "phpunit -c tests/killswitch/phpunit.xml.dist",
-        "lint": "phpcs",
-        "lint:fix": "phpcbf",
         "test:unit": "phpunit --testsuite=Unit",
         "test:integration": "phpunit --testsuite=Integration",
+        "test:legacy": "phpunit -c tests-legacy/phpunit.xml.dist",
+        "test:killswitch": "phpunit -c tests-legacy/killswitch/phpunit.xml.dist",
+        "lint": "phpcs",
+        "lint:fix": "phpcbf",
         "stan": "phpstan analyse --no-progress --memory-limit=2G",
         "refactor": "rector",
         "refactor:sweep": "rector --clear-cache --config=rector-sweep.php",
