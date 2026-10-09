@@ -1,17 +1,21 @@
 {
   "base": "main",
-  "php": "7.0",
+  "php": "8.2",
   "chain": false,
   "guard": {
     "deny": [
-      "sentinel-key\\.php$",
       "wp-config\\.php$",
+      "uams-sentinel-config\\.php$",
+      "sentinel-key\\.php$",
       "\\.sql(\\.gz)?$",
       "\\.(csv|tsv|xlsx?)$",
       "\\.env(\\.|$)",
       "\\.pem$",
-      "\\.key$"
-    ]
+      "\\.key$",
+      "(^|/)sites(-.*)?\\.txt$",
+      "\\.sites\\.txt$"
+    ],
+    "_note": "uams-sentinel-config.php is named because the estate's copies carry a per-site baseline signing key and a Teams webhook URL in what reads like ordinary source; the template's sentinel-key pattern does not match it. Site lists are gitignored; these are the backstop for a --force."
   },
   "jobs": [
     {
@@ -19,10 +23,17 @@
       "run": "php -l",
       "each": [
         "**/*.php",
-        "!vendor/**",
-        "!tests-legacy/**"
+        "!vendor/**"
       ],
       "always": true
+    },
+    {
+      "name": "synced-files",
+      "run": "node .claude/skills/synced-files/scripts/check-synced-files.mjs",
+      "always": true,
+      "requires": [
+        "bin:node"
+      ]
     },
     {
       "name": "pint",
@@ -56,14 +67,17 @@
     },
     {
       "name": "phpunit",
-      "run": "composer test:unit",
+      "run": "composer test",
       "paths": [
         "**/*.php",
         "!vendor/**",
         "phpunit.xml*",
         "composer.lock",
-        "tests/**"
-      ]
+        "tests/**",
+        "tests-legacy/**"
+      ],
+      "_note": "composer test, not test:unit. test:unit is one smoke test; the suites that pin FR1 through FR7 are Legacy and the kill switch, and remote CI is off so this runner is the whole gate."
     }
-  ]
+  ],
+  "_note": "php is the estate's measured version (8.2.33 and 8.2.30, docs/AUDIT.md section 3), not the 8.4 development version #13 proposes. Revisit with #13, which pairs 8.4 here with a lint-floor job at the floor."
 }
