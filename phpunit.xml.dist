@@ -1,4 +1,15 @@
 <?xml version="1.0"?>
+<!--
+	The two suites of the shared harness. Each runs in its own process, and
+	tests/bootstrap.php decides which one it is in from the arguments: the
+	Integration suite boots a real WordPress through wp-phpunit, the Unit suite
+	mocks WordPress per test with Brain Monkey and boots nothing.
+
+	The behavioral suite inherited from before the reshape lives in
+	tests-legacy/, under its own config, because it needs a third bootstrap
+	(the WordPress test library) and PHPUnit takes one bootstrap per file. See
+	tests-legacy/phpunit.xml.dist, and composer.json's `test`.
+-->
 <phpunit
 	bootstrap="tests/bootstrap.php"
 	backupGlobals="false"
@@ -9,9 +20,11 @@
 	beStrictAboutTestsThatDoNotTestAnything="true"
 	>
 	<testsuites>
-		<testsuite name="uamswp-restrict-user-enumeration">
-			<directory prefix="test-" suffix=".php">./tests</directory>
-			<exclude>./tests/killswitch</exclude>
+		<testsuite name="Unit">
+			<directory suffix="Test.php">./tests/Unit</directory>
+		</testsuite>
+		<testsuite name="Integration">
+			<directory suffix="Test.php">./tests/Integration</directory>
 		</testsuite>
 	</testsuites>
 </phpunit>

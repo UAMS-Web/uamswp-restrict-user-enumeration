@@ -8,24 +8,40 @@
     },
     "require-dev": {
         "phpunit/phpunit": "^9.6",
-        "yoast/phpunit-polyfills": "^2.0",
+        "yoast/phpunit-polyfills": "^4.0",
         "squizlabs/php_codesniffer": "^3.9",
         "wp-coding-standards/wpcs": "^3.1",
-        "phpcompatibility/phpcompatibility-wp": "^2.1"
+        "phpcompatibility/phpcompatibility-wp": "^2.1",
+        "brain/monkey": "^2.7",
+        "wp-phpunit/wp-phpunit": "~7.1.0"
     },
     "config": {
         "allow-plugins": {
             "dealerdirect/phpcodesniffer-composer-installer": true
-        }
+        },
+        "sort-packages": true
     },
     "scripts": {
         "test": [
-            "@test:main",
+            "@test:unit",
+            "@test:legacy",
             "@test:killswitch"
         ],
-        "test:main": "phpunit",
-        "test:killswitch": "phpunit -c tests/killswitch/phpunit.xml.dist",
+        "test:unit": "phpunit --testsuite=Unit",
+        "test:integration": "phpunit --testsuite=Integration",
+        "test:legacy": "phpunit -c tests-legacy/phpunit.xml.dist",
+        "test:killswitch": "phpunit -c tests-legacy/killswitch/phpunit.xml.dist",
         "lint": "phpcs",
         "lint:fix": "phpcbf"
+    },
+    "scripts-descriptions": {
+        "test": "Run both suites, each in its own process, so the Unit suite never sees WordPress.",
+        "test:unit": "Run the suite that needs no WordPress and no database.",
+        "test:integration": "Run the suite that boots WordPress through wp-phpunit against the test database."
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "UamswpRestrictUserEnumeration\\Tests\\": "tests/"
+        }
     }
 }

@@ -13,3 +13,5 @@
 sites.txt
 sites-*.txt
 *.sites.txt
+/.phpunit.result.cache
+/.phpstan/
