@@ -1,26 +1,62 @@
 <?xml version="1.0"?>
-<ruleset name="UAMSWP Restrict User Enumeration">
-	<description>WordPress Coding Standards for the shipped plugin file.</description>
+<!--
+  Shared phpcs configuration for a WordPress repository that keeps WordPressCS
+  beside Pint (UAMS-Web/uams-claude-skills#10). Only the security sniffs are
+  enabled: output escaping, nonce verification, input validation and
+  sanitization, safe redirects, prepared SQL. Pint has no equivalent of these.
 
-	<!-- Only the file that actually goes on the servers. -->
-	<file>uamswp-restrict-user-enumeration.php</file>
+  Every formatting sniff is left out so phpcs and Pint do not fight: formatting
+  is Pint's, with the `laravel` preset. Do not add `WordPress`, `WordPress-Core`
+  or `WordPress-Extra` back, and do not run `phpcbf`.
 
-	<arg name="extensions" value="php"/>
-	<arg name="colors"/>
-	<arg value="sp"/>
+  Development dependencies (composer require, as development dependencies):
+  `wp-coding-standards/wpcs` and `dealerdirect/phpcodesniffer-composer-installer`,
+  with `dealerdirect/phpcodesniffer-composer-installer: true` under
+  `config.allow-plugins` in composer.json.
 
-	<rule ref="WordPress"/>
+  Copy to the repository root as `phpcs.xml.dist` and fill in every PLACEHOLDER.
+-->
+<ruleset name="UAMS-Web WordPress security sniffs">
+    <description>WordPressCS security sniffs only; formatting belongs to Pint.</description>
 
-	<!--
-		Nothing here is translated: it is a single-file mu-plugin with no
-		language files, and the one string a visitor can see is a REST error
-		code's message.
-	-->
-	<rule ref="WordPress.WP.I18n">
-		<severity>0</severity>
-	</rule>
+    <!-- PLACEHOLDER: the directories and files holding first-party PHP. In a
+         fork of a vendor plugin, only the paths that hold our modifications. -->
+    <file>.</file>
+    <exclude-pattern>vendor/*</exclude-pattern>
+    <exclude-pattern>node_modules/*</exclude-pattern>
+    <exclude-pattern>tests/*</exclude-pattern>
+    <!--
+      tests-legacy/ holds the behavioral suite until #8 migrates it to Pest.
+      Excluded for the same reason tests/ is: it is not shipped code, and the
+      security sniffs this ruleset keeps are about what reaches a visitor.
+    -->
+    <exclude-pattern>tests-legacy/*</exclude-pattern>
 
-	<config name="minimum_wp_version" value="5.5"/>
-	<config name="testVersion" value="7.0-"/>
-	<rule ref="PHPCompatibilityWP"/>
+    <arg name="extensions" value="php"/>
+    <arg value="sp"/>
+
+    <!-- The whole WordPress.Security category: EscapeOutput, NonceVerification,
+         ValidatedSanitizedInput, SafeRedirect, PluginMenuSlug. -->
+    <rule ref="WordPress.Security"/>
+
+    <!-- SQL injection: `$wpdb` queries use `prepare()` with correct placeholders. -->
+    <rule ref="WordPress.DB.PreparedSQL"/>
+    <rule ref="WordPress.DB.PreparedSQLPlaceholders"/>
+
+    <!-- Optional: capability checks name real capabilities. Keep when the
+         repository already runs it; list its custom capabilities here, as
+         uamswp-mcp does. -->
+    <!--
+    <rule ref="WordPress.WP.Capabilities">
+        <properties>
+            <property name="custom_capabilities" type="array">
+                <element value="edit_my_things"/>
+            </property>
+        </properties>
+    </rule>
+    -->
+
+    <!-- PLACEHOLDER: the lowest WordPress version the repository supports; the
+         security sniffs use it to know which core functions exist. -->
+    <config name="minimum_supported_wp_version" value="6.9"/>
 </ruleset>
