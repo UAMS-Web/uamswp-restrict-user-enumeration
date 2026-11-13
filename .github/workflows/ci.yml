@@ -6,9 +6,8 @@
 # report `skipped` and consume no runner minutes; unset, or any other value,
 # runs them as before.
 #
-# While the switch is off, the local CI runner (.claude/skills/local-ci/) is
-# the whole gate, not a fallback. Its verdict is posted on the pull request.
-# Job list mirrors local-ci.json; keep the two in step.
+# These jobs are this repository's own definition of the checks; moving them
+# to the shared chain is tracked in UAMS-Web/uamswp-restrict-user-enumeration#24.
 name: CI
 
 on:
