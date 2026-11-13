@@ -121,6 +121,20 @@ Brain\Monkey\Functions\when('wp_die')->justReturn(null);
 Brain\Monkey\Functions\when('status_header')->justReturn(null);
 Brain\Monkey\Functions\when('nocache_headers')->justReturn(null);
 
+// Core's get_file_data(): the first 8 KB, one case-insensitive multiline pattern per
+// header. The plugin file reads its own Version through it when it loads.
+Brain\Monkey\Functions\when('get_file_data')->alias(static function ($file, $headers) {
+    $head = str_replace("\r", "\n", (string) file_get_contents($file, false, null, 0, 8192));
+    $data = [];
+
+    foreach ($headers as $field => $regex) {
+        $found = preg_match('/^(?:[ \t]*<\?php)?[ \t\/*#@]*'.preg_quote($regex, '/').':(.*)$/mi', $head, $match);
+        $data[$field] = $found ? trim($match[1]) : '';
+    }
+
+    return $data;
+});
+
 if (is_readable(dirname(__DIR__).'/uamswp-restrict-user-enumeration.php')) {
     require_once dirname(__DIR__).'/uamswp-restrict-user-enumeration.php';
 }
