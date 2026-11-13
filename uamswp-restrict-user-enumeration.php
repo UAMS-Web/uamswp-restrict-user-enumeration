@@ -9,7 +9,7 @@ declare(strict_types=1);
  * Author:            Brent Passmore
  * Author URI:        https://communications.uams.edu/web/
  * Requires at least: 5.5
- * Requires PHP:      7.0
+ * Requires PHP:      7.1
  * License:           GPL-2.0-or-later
  *
  * Must-use plugin. Drop this single file in wp-content/mu-plugins/ (the root,
