@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Plugin URI:        https://github.com/UAMS-Web/uamswp-restrict-user-enumeration
  * Description:       Blocks every known unauthenticated username and author-slug enumeration route (REST users endpoints, numeric ?author= queries, the core users sitemap, and oEmbed author fields) while leaving logged-in editing untouched.
  * Version:           1.1.0
- * Author:            Brent Passmore
+ * Author:            UAMS Web Services
  * Author URI:        https://communications.uams.edu/web/
  * Requires at least: 5.5
  * Requires PHP:      7.0

@@ -319,3 +319,12 @@ node .claude/skills/local-ci/local-ci.mjs --all
 ```
 
 Private repositories validate with this runner rather than billed Actions minutes.
+
+## Credits
+
+Developed and maintained by UAMS Web Services.
+
+Developers:
+
+- Josh Daugherty
+- Brent Passmore
