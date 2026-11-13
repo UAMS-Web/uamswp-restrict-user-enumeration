@@ -221,7 +221,7 @@ This is not hypothetical: **27 of the 32 installs are on WP 7.0.6 or 7.1.2
 today**, so shipping FR1 literally would have answered 500 instead of 401 on
 most of the estate from the first deploy.
 
-**2. Declared floors are WP 5.5 and PHP 7.0, not WP 6.4 and PHP 8.1 (section 4).**
+**2. Declared floors are WP 5.5 and PHP 7.1, not WP 6.4 and PHP 8.1 (section 4).**
 
 Section 4 states those minimums and asks for them to be confirmed against the
 oldest install. The dependency was removed rather than guessed at: the newest
@@ -319,3 +319,12 @@ node .claude/skills/local-ci/local-ci.mjs --all
 ```
 
 Private repositories validate with this runner rather than billed Actions minutes.
+
+## Credits
+
+Developed and maintained by UAMS Web Services.
+
+Developers:
+
+- Josh Daugherty
+- Brent Passmore
