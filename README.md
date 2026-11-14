@@ -311,14 +311,19 @@ inside the web root, and `docs/AUDIT.md` in particular is a list of what is
 currently exploitable on these exact sites.
 
 
-## Local CI
+## Pre-commit guard
+
+A hook in `.githooks/pre-commit` refuses a commit that stages a file such as a
+`wp-config.php`, an SQL dump, a spreadsheet, an `.env` file or a key, since
+git history is permanent and this repository is public. Install it once per
+clone:
 
 ```bash
-node .claude/skills/local-ci/local-ci.mjs --dry-run
-node .claude/skills/local-ci/local-ci.mjs --all
+git config core.hooksPath .githooks
 ```
 
-Private repositories validate with this runner rather than billed Actions minutes.
+The deny list sits at the top of the hook. To allow a file that matches, change
+the list in the same pull request that adds the file.
 
 ## Credits
 
