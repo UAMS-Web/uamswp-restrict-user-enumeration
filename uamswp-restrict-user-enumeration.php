@@ -230,7 +230,8 @@ if (! defined('UAMSWP_RUE_VERSION')) { // @pest-mutate-ignore: RemoveNot
      * Author dropdown and every other authenticated use behave exactly as core
      * decided they should.
      *
-     * @param  callable|null  $original  The callback the route was registered with.
+     * @param  mixed  $original  The callback the route was registered with. Typed `mixed` because a route can be registered
+     *                           with anything or nothing, so it is checked with is_callable() before it is called.
      * @return callable
      */
     function uamswp_rue_wrap_permission_callback($original)
