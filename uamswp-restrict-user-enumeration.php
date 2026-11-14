@@ -212,9 +212,12 @@ if (! defined('UAMSWP_RUE_VERSION')) { // @pest-mutate-ignore: RemoveNot
                     continue;
                 }
 
-                $endpoints[$route][$index]['permission_callback'] =
+                $handler['permission_callback'] =
                     uamswp_rue_wrap_permission_callback($handler['permission_callback']);
+                $handlers[$index] = $handler;
             }
+
+            $endpoints[$route] = $handlers;
         }
 
         return $endpoints;
