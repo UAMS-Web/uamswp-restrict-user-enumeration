@@ -23,6 +23,7 @@ composer install
 composer setup:integration   # once: the Integration suite's own Composer setup
 composer test   # Unit, Integration and the kill switch
 composer lint   # PHPCS, security sniffs
+composer mutate -- --min=100   # Pest mutation testing of the plugin file; needs PCOV
 ```
 
 The Unit suite alone runs with `vendor/bin/pest` (the same as `composer test:unit`).
@@ -36,6 +37,8 @@ Three suites in two Composer setups, because WordPress' test suite supports PHPU
 | kill switch | PHPUnit 9.6, the same setup | `tests/Integration/killswitch/phpunit.xml` | 6 tests, its own process |
 
 `composer test` runs all three: 90 tests. **Keep the Integration and kill-switch suites in it.** They are what gates the plugin's behavior on four production installs, and a `composer test` that reached only the Unit suite would pass on a handful of header checks. The Integration classes stay PHPUnit 9 classes and are not converted to Pest.
+
+`composer mutate` names every `tests/Unit/*.php` file on its command line, because a directory or no path crashes each mutation child process (Patchwork's stream wrapper and Pest's both wrap `readdir`). **A new Unit test file must be added to that script**, or its coverage is invisible to the run. Mutants only a child process reaches (the load guards, the `define`, the bootstrap call, the author-query gate) carry a trailing `@pest-mutate-ignore` marker with its reason on the line above: a standalone marker cannot suppress a mutator that targets the statement itself. The trailing form needs a runtime where `PHP_EOL` splits the file (Linux and macOS; CI runs Linux).
 
 The kill switch needs its own process: `UAMSWP_RUE_DISABLE` is read when the plugin file is first included and a PHP constant cannot be undefined afterward.
 

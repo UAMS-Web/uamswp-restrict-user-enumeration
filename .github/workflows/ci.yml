@@ -4,8 +4,8 @@ name: CI
 #
 # The lint, static-analysis and unit chain is the shared one, `UAMS-Web/uams-ci-workflows`,
 # called by the `checks` job, so this repository carries no copy of it that drifts. The call
-# runs on Linux only, leaves mutation testing off (until UAMS-Web/uamswp-restrict-user-enumeration#28),
-# parses the plugin file under its declared floor, and runs the Pest Unit suite as
+# runs on Linux only, runs mutation testing on the plugin file (`composer mutate` names every Unit test
+# file, see its description in `composer.json`), parses the plugin file under its declared floor, and runs the Pest Unit suite as
 # `composer test:unit`. The PHPUnit Integration and kill-switch suites need MySQL and a WordPress
 # core, so they run locally, not in this workflow. `phpcs` stays off: the Composer script
 # `lint` runs it and the chain's own copy needs a script this repository does not define.
@@ -49,7 +49,8 @@ jobs:
     uses: UAMS-Web/uams-ci-workflows/.github/workflows/ci.yml@v0.11.0
     with:
       linux-only: true
-      mutate: false
+      mutate-paths: uamswp-restrict-user-enumeration.php
+      mutate-ignore-paths: uamswp-restrict-user-enumeration.php
       global-test-symbols: false
       pest-command: composer test:unit
       floor-lint: true
