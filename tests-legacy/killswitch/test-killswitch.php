@@ -66,6 +66,7 @@ class Test_UAMSWP_RUE_Kill_Switch extends WP_Test_REST_TestCase {
 	 */
 	public function test_the_plugin_is_loaded_and_disabled() {
 		$this->assertTrue( defined( 'UAMSWP_RUE_VERSION' ), 'The plugin file was not loaded.' );
+		$this->assertMatchesRegularExpression( '/^\d+\.\d+\.\d+$/', UAMSWP_RUE_VERSION, 'The version was not read from the header under WordPress.' );
 		$this->assertTrue( function_exists( 'uamswp_rue_bootstrap' ) );
 		$this->assertTrue( uamswp_rue_disabled() );
 	}

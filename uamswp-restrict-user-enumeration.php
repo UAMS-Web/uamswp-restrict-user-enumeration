@@ -33,7 +33,8 @@ if (defined('UAMSWP_RUE_VERSION')) {
     return;
 }
 
-define('UAMSWP_RUE_VERSION', '1.1.1');
+// The header's Version is the only place the release number is written.
+define('UAMSWP_RUE_VERSION', get_file_data(__FILE__, ['Version' => 'Version'])['Version']);
 
 /**
  * Whether the wp-config.php kill switch is set.
