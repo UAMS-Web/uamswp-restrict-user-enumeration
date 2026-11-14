@@ -32,24 +32,29 @@ it('casts a non-string route before normalizing it', function (mixed $raw, strin
 
 it('keeps the lowercased route when the slash collapse fails', function (): void {
     // preg_replace() returns null on an engine error, which the is_string guard must not adopt.
-    // A one-step backtrack limit without the JIT makes the collapse fail on a long run of slashes.
+    // A one-step backtrack limit without the JIT makes the collapse fail on a long run of slashes
+    // on some PCRE builds (macOS, PHP 8.4.27) and not on others (the Linux runner), so the test
+    // first proves the failure happened and skips, naming the reason, when it cannot.
     $jit = ini_get('pcre.jit');
     $limit = ini_get('pcre.backtrack_limit');
+    $input = str_repeat('/', 5000).'A';
 
     ini_set('pcre.jit', '0');
     ini_set('pcre.backtrack_limit', '1');
 
     try {
-        $failed = preg_replace('#/+#', '/', str_repeat('/', 5000).'A');
-        $result = uamswp_rue_normalize_route(str_repeat('/', 5000).'A');
+        $failed = preg_replace('#/+#', '/', $input);
+        $result = uamswp_rue_normalize_route($input);
     } finally {
         ini_set('pcre.jit', (string) $jit);
         ini_set('pcre.backtrack_limit', (string) $limit);
     }
 
-    // Control: the same input makes the bare call fail, so the guard path was reached.
-    expect($failed)->toBeNull()
-        ->and($result)->toBe('/a');
+    if ($failed !== null) {
+        $this->markTestSkipped('This PCRE build does not fail preg_replace() under pcre.backtrack_limit=1, so the is_string guard cannot be reached here.');
+    }
+
+    expect($result)->toBe('/a');
 });
 
 it('matches the core users routes', function (string $route): void {
