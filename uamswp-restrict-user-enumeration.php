@@ -101,7 +101,7 @@ if (! defined('UAMSWP_RUE_VERSION')) { // @pest-mutate-ignore: RemoveNot
      *
      * @param  mixed  $result  Dispatch result to override, or null.
      * @param  WP_REST_Server  $server  Server instance (unused).
-     * @param  WP_REST_Request  $request  Current request.
+     * @param  mixed  $request  Current request. Typed `mixed` because a filter caller can pass anything, so it is checked below.
      * @return mixed A 401 response to block the request, otherwise $result untouched.
      */
     function uamswp_rue_block_rest_users($result, $server, $request)
@@ -188,8 +188,9 @@ if (! defined('UAMSWP_RUE_VERSION')) { // @pest-mutate-ignore: RemoveNot
      * Batch sub-requests and the sub-requests _embed makes both run
      * respond_to_request(), so this gate covers them as well.
      *
-     * @param  array<string, array<int, array<string, mixed>>>  $endpoints  Registered routes.
-     * @return array<string, array<int, array<string, mixed>>>
+     * @param  mixed  $endpoints  Registered routes, normally array<string, array<int, array<string, mixed>>>. Typed `mixed` because a
+     *                            third-party filter earlier in the chain can return anything, so each level is checked below.
+     * @return mixed The routes with each users route's permission callback wrapped, or the input untouched when it is not an array.
      */
     function uamswp_rue_guard_endpoints($endpoints)
     {
@@ -310,8 +311,8 @@ if (! defined('UAMSWP_RUE_VERSION')) { // @pest-mutate-ignore: RemoveNot
      * callers at /wp-json/oembed/1.0/embed, and both are set unconditionally in
      * get_oembed_response_data().
      *
-     * @param  array  $data  Prepared oEmbed response data.
-     * @return array
+     * @param  mixed  $data  Prepared oEmbed response data, normally an array. Typed `mixed` because a filter earlier in the chain can return anything.
+     * @return mixed The data with the author fields replaced, or the input untouched when it is not an array.
      */
     function uamswp_rue_scrub_oembed_author($data)
     {
