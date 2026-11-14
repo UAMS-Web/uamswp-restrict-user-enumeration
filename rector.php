@@ -27,8 +27,7 @@ use Rector\ValueObject\PhpVersion;
 // for the sets both share; the profile only changes which rules are skipped.
 //
 //   Gating profile (default) -- the rules safe to make mandatory. This is what
-//   `composer test:refactor` reports on and what the local CI `rector` job
-//   enforces.
+//   `composer test:refactor` reports on and what the CI `rector` job enforces.
 //
 //   Sweep profile -- every rule enabled here, including the sweep-only ones
 //   below. Run it deliberately and review the diff:
