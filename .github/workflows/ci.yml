@@ -9,6 +9,7 @@ name: CI
 # `composer test:unit`. The PHPUnit Integration and kill-switch suites need MySQL and a WordPress
 # core, so they run locally, not in this workflow. `phpcs` stays off: the Composer script
 # `lint` runs it and the chain's own copy needs a script this repository does not define.
+# A weekly `schedule:` runs the full mutation pass beside the per-change runs.
 # `download-archive` runs the synced `check-download-archive.mjs` against the keep-list in
 # `.gitattributes`, so a path that is not the plugin cannot reach the GitHub download unnoticed.
 #
@@ -31,6 +32,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # The full mutation pass, weekly: a scheduled run mutates everything `composer mutate` covers, which catches
+  # drift from a dependency or tooling change that no pull request touches. It runs on the default branch at
+  # 07:17 UTC on Mondays, and GitHub disables a schedule after 60 days without repository activity.
+  schedule:
+    - cron: '17 7 * * 1'
 
 # A new push to a pull request cancels that pull request's stale run. Every other run gets a
 # group of its own, keyed on the commit, so a later push never cancels it.
