@@ -53,7 +53,7 @@ jobs:
       global-test-symbols: false
       pest-command: composer test:unit
       floor-lint: true
-      floor-lint-php: '7.1'
+      floor-lint-php: '8.2'
       floor-lint-command: php -l uamswp-restrict-user-enumeration.php
 
   # Refuses a tracked file that could hold a secret or personal data. The same list is in

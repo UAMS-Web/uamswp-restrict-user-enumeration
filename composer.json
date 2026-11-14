@@ -4,7 +4,7 @@
     "type": "wordpress-muplugin",
     "license": "GPL-2.0-or-later",
     "require": {
-        "php": ">=7.1"
+        "php": ">=8.2"
     },
     "require-dev": {
         "brain/monkey": "^2.7",

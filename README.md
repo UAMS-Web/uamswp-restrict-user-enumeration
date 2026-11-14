@@ -227,20 +227,23 @@ This is not hypothetical: **27 of the 32 installs are on WP 7.0.6 or 7.1.2
 today**, so shipping FR1 literally would have answered 500 instead of 401 on
 most of the estate from the first deploy.
 
-**2. Declared floors are WP 5.5 and PHP 7.1, not WP 6.4 and PHP 8.1 (section 4).**
+**2. The declared floor is WP 5.5 and, since the organization's WordPress standard, PHP 8.2 (section 4).**
 
 Section 4 states those minimums and asks for them to be confirmed against the
-oldest install. The dependency was removed rather than guessed at: the newest
-API the plugin uses is `wp_sitemaps_add_provider` (WP 5.5),
-`rest_convert_error_to_response` is called behind `function_exists`, and nothing
-needs PHP 8. A security control that fails to load because of a version guess is
-worse than one with a conservative header, and mu-plugins ignore these headers
-anyway.
+oldest install. The WordPress dependency was removed rather than guessed at: the
+newest API the plugin uses is `wp_sitemaps_add_provider` (WP 5.5), and
+`rest_convert_error_to_response` is called behind `function_exists`. The PHP
+floor was 7.1 until the organization standard (UAMS-Web/uams-claude-skills#125)
+set 8.2 for every WordPress repository, which is the oldest PHP read in the
+estate; the code itself needs nothing newer than PHP 7.1 syntax, and a floor lint
+on PHP 8.2 gates it. A security control that fails to load because of a version
+guess is worse than one with a conservative header, and mu-plugins ignore these
+headers anyway.
 
 The estate was then measured: **the oldest WordPress is 6.8.10**, not 6.4, read
 from 30 of the 32 sites over HTTP, and **PHP is 8.2**: 8.2.33 on
 `sites.uams.edu`, 8.2.30 on `uamshealth.com`, read from Site Health. Nothing is
-near the declared floor. See docs/AUDIT.md section 3.
+near the declared WordPress floor, and the two PHP readings sit at the PHP floor. See docs/AUDIT.md section 3.
 
 **3. FR1 is enforced twice, not once.**
 

@@ -56,7 +56,7 @@ Connection settings come from `WP_TESTS_DB_NAME`, `WP_TESTS_DB_USER`, `WP_TESTS_
 
 ### Conventions specific to this plugin
 
-- **The declared `Requires at least` and `Requires PHP` are deliberately below what the estate runs.** They state what the code actually needs, so a version assumption cannot stop a security control from loading. Keep them that way, and keep new code inside them.
+- **The declared `Requires PHP` is 8.2, the organization's WordPress floor (UAMS-Web/uams-claude-skills#125), which is also the oldest PHP read in the estate (`docs/AUDIT.md` section 3). `Requires at least` stays deliberately below what the estate runs.** Both state what the code needs, and mu-plugins ignore both headers, so a version assumption cannot stop a security control from loading. Keep new code inside the declared floors: `composer.json`'s `require.php`, the header, `rector.php` and `phpstan.neon.dist` all name 8.2, and the `floor-lint` job in `.github/workflows/ci.yml` parses the plugin file on PHP 8.2.
 - **FR1 is enforced at two independent gates**, `rest_pre_dispatch` at `PHP_INT_MAX` and a `rest_endpoints` permission-callback wrapper. This is not belt and braces: a third-party plugin was found discarding the first gate's return value in production, which is written up in [`docs/ACF-BUG-REPORT.md`](docs/ACF-BUG-REPORT.md) and regression-tested in `tests/test-hostile-chain.php`. Either gate alone refuses the request. Do not reduce it to one.
 - **Every vector has a control test** that removes the plugin's hook and asserts the leak is real. A test that only proves the closed state cannot tell a working guard from an absent vector.
 
