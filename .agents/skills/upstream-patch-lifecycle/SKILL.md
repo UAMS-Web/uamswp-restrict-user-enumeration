@@ -19,9 +19,8 @@ description: >-
   ticket chain for one, removing a retired patch, or editing `patches/`, `extra.patches`,
   `patches.json` or `patches.lock.json`. Writing and documenting a patch and the upstream-facing
   and package-side half (filing the bug and the pull request upstream, the shared package itself,
-  its versioning and retirement, the release check and the upstream watcher, and the
-  upstream-request variant) are the `patch-package` skill in the `uams-web/patches-*`
-  repositories.
+  its versioning and retirement, the release check, and the upstream-request
+  variant) are the `patch-package` skill in the `uams-web/patches-*` repositories.
 ---
 <!--
   Synced from UAMS-Web/uams-claude-skills: shared/.claude/skills/upstream-patch-lifecycle/SKILL.md
@@ -305,7 +304,7 @@ retires it.
 | Patch SHA-256s and the set `_hash` | `patches.lock.json` |
 | Composer's own manifest hash | `composer.lock` → `content-hash` |
 | The plugin itself | `cweagans/composer-patches ^2.0` in `require-dev` + `allow-plugins` |
-| Per-patch narrative + removal checklist | `patches/README.md` where the repository has one; otherwise the entry's description key and the decision log (annotated on retirement, never pruned; removal step 12 expects that hit) |
+| Per-patch narrative + removal checklist | `patches/README.md` where the repository has one; otherwise the entry's description key and the decision log (annotated on retirement, never pruned; removal step 11 expects that hit) |
 | PHPStan pins for vendor-guard tests | `internalClass` `ignoreErrors` in `phpstan.neon.dist` |
 
 ### Adding a patch
@@ -353,7 +352,7 @@ same applies to any other `composer.json` key feeding the hash: `name`, `require
 
 ### Checking whether the fix shipped
 
-Moved to the `patch-package` skill, which the `uams-web/patches-*` repositories carry (UAMS-Web/uams-claude-skills#702): the release check, and the upstream watcher with its templates. A repository that adopted the watcher keeps its own copy, since the sync never writes a target's `.github/` or `scripts/`.
+Moved to the `patch-package` skill, which the `uams-web/patches-*` repositories carry (UAMS-Web/uams-claude-skills#702): the release check.
 
 ### Removing a patch: the order is load-bearing
 
@@ -378,22 +377,21 @@ unpatched code.
    (`pest-plugin-mutate` is pulled in by `pestphp/pest`, not listed in `require-dev`) is still
    targeted by name. **When the update is a Dependabot pull request**, the package has already
    moved on its branch and that branch is unmerged, so nothing reaches `main` out of order: do
-   steps 1 to 4 and 6 to 12 on that branch, and this step is the bump it already carries (the
+   steps 1 to 4 and 6 to 11 on that branch, and this step is the bump it already carries (the
    [`update-dependencies-ticket`](../update-dependencies-ticket/SKILL.md) skill).
 6. Delete the patch's own **guard test**: the one asserting the patch is present in `vendor/`,
    along with the `internalClass` `ignoreErrors` entries in `phpstan.neon.dist` pinned to its
    path. **Do not leave it behind:** a guard goes red the moment the patch retires, which is the
    property that makes it useful and the reason it cannot outlive the patch. A shared
-   *regression* gate is a different thing and stays, that is what step 11 runs to prove the stock
+   *regression* gate is a different thing and stays, that is what step 10 runs to prove the stock
    package still works.
 7. Remove the patch's narrative: its `patches/README.md` section, or its `_comment` entry.
-8. Retire any upstream watch row and its note, where the repository has a watcher.
-9. `composer validate --no-check-publish` exits 0.
-10. Cold verify: `rm -rf vendor && composer install` exits 0 and every **remaining** patch still
+8. `composer validate --no-check-publish` exits 0.
+9. Cold verify: `rm -rf vendor && composer install` exits 0 and every **remaining** patch still
     applies.
-11. Run the gate that exercises the now-unpatched tool, and **see it green**: see *Proving it
+10. Run the gate that exercises the now-unpatched tool, and **see it green**: see *Proving it
     worked* below. Assuming it is fine is how a silent regression ships.
-12. Nothing outside the historical record still names the patch. A retirement annotates the
+11. Nothing outside the historical record still names the patch. A retirement annotates the
     repository's decision log (`docs/DECISIONS.md` where it has one) rather than deleting the
     entry, because a decision log records what was decided and deleting an entry falsifies it;
     that annotated entry is the one place the basename should survive, and step 7 has already
@@ -523,7 +521,7 @@ Moved to the `patch-package` skill, which the `uams-web/patches-*` repositories 
 This skill owns the **lifecycle** and the **ticket shape**, and nothing else.
 
 - **The upstream-facing and package-side work** (writing and documenting a patch, tickets 2 and 3,
-  the shared package, its versioning and retirement, the release check and the upstream watcher,
+  the shared package, its versioning and retirement, the release check,
   and the upstream-request variant) is the
   `patch-package` skill in the `uams-web/patches-*` repositories (UAMS-Web/uams-claude-skills#702).
 - **Per-patch detail**: what each patch does, why it exists, its retirement condition, and its
