@@ -17,12 +17,13 @@ use Brain\Monkey\Filters;
  * cannot run in the test runner's own process.
  *
  * @param  array<string, mixed>  $defines  Constants defined before the file is included.
+ * @param  string  $mode  `second-copy` to include a copy of the file from another path after the first load.
  * @return array{registered: list<array{string, string, mixed, int, int}>, version: ?string, read_header: bool}
  */
-function uamswp_rue_test_load_in_child(array $defines): array
+function uamswp_rue_test_load_in_child(array $defines, string $mode = ''): array
 {
     $process = proc_open(
-        [PHP_BINARY, dirname(__DIR__).'/Support/load-plugin-in-child.php', json_encode($defines, JSON_THROW_ON_ERROR)],
+        [PHP_BINARY, dirname(__DIR__).'/Support/load-plugin-in-child.php', json_encode($defines, JSON_THROW_ON_ERROR), $mode],
         [1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
         $pipes
     );
@@ -72,9 +73,7 @@ it('loads when ABSPATH is defined', function (): void {
         ->and($report['registered'])->toHaveCount(5);
 });
 
-// Functions at the top level of a file are declared when it compiles, before this guard
-// runs, so what the guard prevents is the version re-read and the hook registration.
-it('returns before reading the header or registering anything when the version constant is already defined', function (): void {
+it('skips the header read and the registration when the version constant is already defined', function (): void {
     $report = uamswp_rue_test_load_in_child(['ABSPATH' => '/', 'UAMSWP_RUE_VERSION' => 'first-copy']);
 
     expect($report['version'])->toBe('first-copy')
@@ -121,4 +120,12 @@ it('registers each hook from uamswp_rue_bootstrap() when the kill switch is off'
     Filters\expectAdded('oembed_response_data')->once()->with('uamswp_rue_scrub_oembed_author', 10);
 
     uamswp_rue_bootstrap();
+});
+
+it('loads a second copy of the file without a fatal and registers the hooks once', function (): void {
+    // A stray copy in plugins/ beside the one in mu-plugins/. The child exits non-zero on the
+    // "Cannot redeclare" fatal, which the helper's status check reports.
+    $report = uamswp_rue_test_load_in_child(['ABSPATH' => '/'], 'second-copy');
+
+    expect($report['registered'])->toBe(uamswp_rue_test_expected_hooks());
 });

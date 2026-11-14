@@ -7,7 +7,9 @@
  * ends the request with `exit` when ABSPATH is missing, so neither can be
  * exercised inside the test runner's own process. BootstrapTest runs this
  * script with `PHP_BINARY`, passing the constants to define as JSON in the first
- * argument, and reads the JSON report it prints in the shutdown function.
+ * argument, and reads the JSON report it prints in the shutdown function. A second
+ * argument of `second-copy` then includes a copy of the file from another path,
+ * as a stray copy in plugins/ beside the one in mu-plugins/ would be.
  */
 
 declare(strict_types=1);
@@ -63,3 +65,15 @@ register_shutdown_function(static function (): void {
 });
 
 include dirname(__DIR__, 2).'/uamswp-restrict-user-enumeration.php';
+
+if (($argv[2] ?? '') === 'second-copy') {
+    $uamswp_rue_copy = sys_get_temp_dir().'/uamswp-rue-second-copy-'.getmypid().'.php';
+
+    copy(dirname(__DIR__, 2).'/uamswp-restrict-user-enumeration.php', $uamswp_rue_copy);
+
+    try {
+        include $uamswp_rue_copy;
+    } finally {
+        unlink($uamswp_rue_copy);
+    }
+}
