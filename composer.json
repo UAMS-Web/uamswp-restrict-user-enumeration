@@ -39,6 +39,7 @@
             "@test:killswitch"
         ],
         "test:unit": "pest",
+        "mutate": "pest --mutate --everything tests/Unit/AuthorQueryGateTest.php tests/Unit/BootstrapExitTest.php tests/Unit/BootstrapTest.php tests/Unit/HarnessSmokeTest.php tests/Unit/PermissionCallbackGateTest.php tests/Unit/PluginVersionTest.php tests/Unit/RestPreDispatchGateTest.php tests/Unit/RouteMatchingTest.php tests/Unit/SitemapAndOembedFiltersTest.php",
         "test:integration": "@php tests/Integration/vendor/bin/phpunit --configuration tests/Integration/phpunit.xml",
         "test:killswitch": "@php tests/Integration/vendor/bin/phpunit --configuration tests/Integration/killswitch/phpunit.xml",
         "lint": "phpcs",
@@ -54,6 +55,7 @@
     "scripts-descriptions": {
         "setup:integration": "Install the Integration suite's own Composer setup (PHPUnit 9.6, wp-phpunit, the polyfills).",
         "test": "Run the Unit suite, the Integration suite and the kill-switch suite, each in its own process, so the Unit suite never sees WordPress.",
+        "mutate": "Run Pest mutation testing over the plugin file. Every Unit test file is named, because a directory or no path crashes the mutation child process (a Patchwork stream wrapper clash). Add a new Unit test file here.",
         "test:unit": "Run the Pest suite that needs no WordPress and no database.",
         "test:integration": "Run the PHPUnit 9.6 suite that boots WordPress through wp-phpunit against the test database.",
         "test:killswitch": "Run the FR5 kill-switch tests in their own process, with UAMSWP_RUE_DISABLE defined before the plugin loads."

@@ -23,7 +23,8 @@ declare(strict_types=1);
  * 0-uamswp-rue-disable.php. wp_get_mu_plugins() sorts the directory, so a
  * leading digit is enough to guarantee it loads first. See the README.
  */
-if (! defined('ABSPATH')) {
+// The Unit bootstrap defines ABSPATH first, so the exit branch runs only in a child process (tests/Unit/BootstrapExitTest.php).
+if (! defined('ABSPATH')) { // @pest-mutate-ignore: IfNegated,RemoveNot
     exit;
 }
 
@@ -31,9 +32,11 @@ if (! defined('ABSPATH')) {
 // redeclare. PHP declares a file's top-level functions when it compiles, before
 // any statement runs, so an early return cannot prevent it: every declaration
 // sits inside this block instead, and a second copy skips all of it quietly.
-if (! defined('UAMSWP_RUE_VERSION')) {
+// The second-load branch runs in a child process (tests/Unit/BootstrapTest.php), which the coverage driver cannot see.
+if (! defined('UAMSWP_RUE_VERSION')) { // @pest-mutate-ignore: RemoveNot
     // The header's Version is the only place the release number is written.
-    define('UAMSWP_RUE_VERSION', get_file_data(__FILE__, ['Version' => 'Version'])['Version']);
+    // Runs while the Unit bootstrap loads the file, before any test records coverage; tests/Unit/PluginVersionTest.php asserts the value.
+    define('UAMSWP_RUE_VERSION', get_file_data(__FILE__, ['Version' => 'Version'])['Version']); // @pest-mutate-ignore: RemoveFunctionCall,RemoveArrayItem
 
     /**
      * Whether the wp-config.php kill switch is set.
@@ -263,21 +266,25 @@ if (! defined('UAMSWP_RUE_VERSION')) {
      */
     function uamswp_rue_block_author_query(): void
     {
-        if (is_user_logged_in()) {
+        // Exercised only in a child process (tests/Unit/AuthorQueryGateTest.php), which the coverage driver cannot see.
+        if (is_user_logged_in()) { // @pest-mutate-ignore: IfNegated
             return;
         }
 
         // Presence is the whole test; the value is never read, so there is nothing
         // to sanitize and no form submission to carry a nonce.
+        // Child-process only, as above.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        if (! isset($_GET['author'])) {
+        if (! isset($_GET['author'])) { // @pest-mutate-ignore: IfNegated,RemoveNot
             return;
         }
 
+        // Child-process only, as above.
         /** This action is documented in uamswp-restrict-user-enumeration.php */
-        do_action('uamswp_rue_blocked', 'author_query', null);
+        do_action('uamswp_rue_blocked', 'author_query', null); // @pest-mutate-ignore: RemoveFunctionCall
 
-        wp_safe_redirect(home_url('/'), 301);
+        // Exercised only in a child process (tests/Unit/AuthorQueryGateTest.php), which the coverage driver cannot see.
+        wp_safe_redirect(home_url('/'), 301); // @pest-mutate-ignore: RemoveFunctionCall,DecrementInteger,IncrementInteger
         exit;
     }
 
@@ -350,5 +357,6 @@ if (! defined('UAMSWP_RUE_VERSION')) {
         add_filter('oembed_response_data', 'uamswp_rue_scrub_oembed_author', 10);
     }
 
-    uamswp_rue_bootstrap();
+    // The call runs while the Unit bootstrap loads the file, before any test records coverage, so only the hook assertions in tests/Unit/BootstrapTest.php see its effect.
+    uamswp_rue_bootstrap(); // @pest-mutate-ignore: RemoveFunctionCall
 }
