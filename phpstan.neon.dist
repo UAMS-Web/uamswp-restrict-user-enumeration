@@ -58,7 +58,7 @@ parameters:
     # from 0 upward (see the code-quality skill), then raise it by one per
     # change as findings are fixed, until `max`. Lowering it is a deliberate,
     # argued change, not a quiet edit to get a red run green.
-    level: 3
+    level: 4
 
     excludePaths:
         analyseAndScan:
@@ -143,6 +143,13 @@ parameters:
     # an entry needs. With every entry commented out the key is empty, which
     # PHPStan reads as no entries.
     ignoreErrors:
+        # `rest_pre_dispatch` passes ($result, $server, $request) and WordPress calls the callback with all three
+        # positionally, so `$server` has to stay in the signature to reach `$request`.
+        -
+            identifier: function.unusedParameter
+            message: '#^Function uamswp_rue_block_rest_users\(\) has an unused parameter \$server\.$#'
+            path: uamswp-restrict-user-enumeration.php
+            count: 1
         -
             identifier: return.void
             reportUnmatched: false
