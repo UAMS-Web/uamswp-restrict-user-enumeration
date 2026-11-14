@@ -94,9 +94,30 @@ Brain\Monkey\Functions\when('get_file_data')->alias(static function ($file, $hea
     return $data;
 });
 
-if (is_readable(dirname(__DIR__).'/uamswp-restrict-user-enumeration.php')) {
-    require_once dirname(__DIR__).'/uamswp-restrict-user-enumeration.php';
+/*
+ * The plugin file ends the request (`exit`) when a guard fails. Inside this bootstrap that stops
+ * the Pest process before any test runs, and the process exits 0 with no output, which a CI job
+ * reads as a pass. The shutdown function turns that into a failure that names the cause.
+ *
+ * UAMSWP_RUE_TEST_PLUGIN_FILE points the bootstrap at another file, so a test can run it against
+ * a file that ends the request. It is read only here.
+ */
+$uamswp_rue_plugin_file = getenv('UAMSWP_RUE_TEST_PLUGIN_FILE') ?: dirname(__DIR__).'/uamswp-restrict-user-enumeration.php';
+$uamswp_rue_plugin_loaded = false;
+
+register_shutdown_function(static function () use (&$uamswp_rue_plugin_loaded): void {
+    if (! $uamswp_rue_plugin_loaded) {
+        fwrite(STDERR, "The plugin file ended the request while the Unit bootstrap loaded it, so no test ran.\n");
+
+        exit(1);
+    }
+});
+
+if (is_readable($uamswp_rue_plugin_file)) {
+    require_once $uamswp_rue_plugin_file;
 }
+
+$uamswp_rue_plugin_loaded = true;
 
 Brain\Monkey\tearDown();
 
