@@ -1,110 +1,93 @@
-# RUN_REMOTE_CI: budget kill-switch.
-# GitHub Actions minutes bill at the organization level, one pool shared by
-# every UAMS-Web repository, and only private repositories consume them. This
-# repository is private. Every job below is gated on
-# `if: vars.RUN_REMOTE_CI != 'false'`: with the variable set to `false` the jobs
-# report `skipped` and consume no runner minutes; unset, or any other value,
-# runs them as before.
-#
-# While the switch is off, the local CI runner (.claude/skills/local-ci/) is
-# the whole gate, not a fallback. Its verdict is posted on the pull request.
-# Job list mirrors local-ci.json; keep the two in step.
 name: CI
 
+# The checks this plugin runs on every pull request and on pushes to main.
+#
+# The lint, static-analysis and unit chain is the shared one, `UAMS-Web/uams-ci-workflows`,
+# called by the `checks` job, so this repository carries no copy of it that drifts. The call
+# runs on Linux only, leaves mutation testing off (the suite is PHPUnit, not Pest, until
+# UAMS-Web/uamswp-restrict-user-enumeration#8 and #3), parses the plugin file under its declared floor,
+# and runs the Unit suite as `composer test:unit`. `phpcs` stays off: the Composer script
+# `lint` runs it and the chain's own copy needs a script this repository does not define.
+# `download-archive` stays off until the keep-list in `.gitattributes` exists
+# (UAMS-Web/uamswp-restrict-user-enumeration#18).
+#
+# The `guard` job is the one check the chain does not cover: it refuses a tracked file that
+# could hold a secret or personal data. It runs beside the call and is listed in the `needs:` of `CI`.
+#
+# The last job, `CI`, is the one check a ruleset requires from this workflow (with the two
+# pull-request-body checks, `Attribution footer` and `Closing keywords`). It `needs:` the
+# call and `guard`, runs `if: always()`, and fails unless each reports `success`: a `skipped`
+# or `cancelled` result fails it. Adding a plain job here means adding it to the `needs:`
+# list of `CI`. Do not rename `CI`, and do not rename `checks` without changing `needs:` below.
+#
+# What this repository carries for the call, because the called jobs check out this repository:
+# `.github/actions/setup/action.yml`, the synced `.claude/skills` scripts, and the Composer
+# scripts `test:pint`, `test:refactor`, `stan` and `test:unit`. `composer.json` pins
+# `config.platform.php` to the PHP the development tools need, which is what the chain installs.
+
 on:
-  push:
   pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A new push to a pull request cancels that pull request's stale run. Every other run gets a
+# group of its own, keyed on the commit, so a later push never cancels it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
 
 jobs:
+  # The shared chain. Its checks report as `checks / <job name> (<operating system>)`.
+  checks:
+    # Pinned to a release tag, never a branch or a commit, so a change to the chain reaches this
+    # plugin only when the pin moves.
+    uses: UAMS-Web/uams-ci-workflows/.github/workflows/ci.yml@v0.11.0
+    with:
+      linux-only: true
+      mutate: false
+      global-test-symbols: false
+      pest-command: composer test:unit
+      floor-lint: true
+      floor-lint-php: '7.1'
+      floor-lint-command: php -l uamswp-restrict-user-enumeration.php
+
+  # Refuses a tracked file that could hold a secret or personal data. The same list is in
+  # `.githooks/pre-commit`; keep the two in step.
   guard:
     runs-on: ubuntu-latest
-    # Budget kill-switch: see the RUN_REMOTE_CI note in the header.
-    if: vars.RUN_REMOTE_CI != 'false'
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - name: Guard against committed secrets / PII
+      - uses: actions/checkout@v7
+      - name: Guard against committed secrets and personal data
         run: |
-          bad=$(git ls-files | grep -E "sentinel-key\\.php$|wp-config\\.php$|\\.sql(\\.gz)?$|\\.(csv|tsv|xlsx?)$|\\.env(\\.|$)|\\.pem$|\\.key$" || true)
+          bad=$(git ls-files | grep -E 'sentinel-key\.php$|wp-config\.php$|\.sql(\.gz)?$|\.(csv|tsv|xlsx?)$|\.env(\.|$)|\.pem$|\.key$' || true)
           if [ -n "$bad" ]; then
-            echo "::error::Tracked secret/PII file(s) detected:"; echo "$bad"; exit 1
+            echo "::error::Tracked secret or personal-data file(s) detected:"; echo "$bad"; exit 1
           fi
 
-  lint:
+  # The one check a ruleset requires from this workflow. Keep `needs:` naming the call and every plain job.
+  ci:
+    name: CI
+    needs: [checks, guard]
+    if: always()
     runs-on: ubuntu-latest
-    # Budget kill-switch: see the RUN_REMOTE_CI note in the header.
-    if: vars.RUN_REMOTE_CI != 'false'
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: '7.0'
-          coverage: none
-          tools: composer
-      - name: php -l every PHP file
+      # `skipped` and `cancelled` fail as well as `failure`: a job that did not run proved nothing.
+      - name: Every needed job succeeded
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
         run: |
-          set -e
-          find . -name '*.php' -not -path './vendor/*' -not -path './vendor' -not -path './tests-legacy/*' -not -path './tests-legacy' -print0 \
-            | xargs -0 -I{} php -l "{}"
-
-  pint:
-    runs-on: ubuntu-latest
-    # Budget kill-switch: see the RUN_REMOTE_CI note in the header.
-    if: vars.RUN_REMOTE_CI != 'false'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: '7.0'
-          coverage: none
-          tools: composer
-      - run: composer install --no-interaction --prefer-dist --no-progress
-      - name: pint
-        run: composer test:pint
-
-  rector:
-    runs-on: ubuntu-latest
-    # Budget kill-switch: see the RUN_REMOTE_CI note in the header.
-    if: vars.RUN_REMOTE_CI != 'false'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: '7.0'
-          coverage: none
-          tools: composer
-      - run: composer install --no-interaction --prefer-dist --no-progress
-      - name: rector
-        run: composer test:refactor
-
-  phpstan:
-    runs-on: ubuntu-latest
-    # Budget kill-switch: see the RUN_REMOTE_CI note in the header.
-    if: vars.RUN_REMOTE_CI != 'false'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: '7.0'
-          coverage: none
-          tools: composer
-      - run: composer install --no-interaction --prefer-dist --no-progress
-      - name: phpstan
-        run: composer stan
-
-  phpunit:
-    runs-on: ubuntu-latest
-    # Budget kill-switch: see the RUN_REMOTE_CI note in the header.
-    if: vars.RUN_REMOTE_CI != 'false'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: '7.0'
-          coverage: none
-          tools: composer
-      - run: composer install --no-interaction --prefer-dist --no-progress
-      - name: phpunit
-        run: composer test:unit
+          echo "Needed job results: $RESULTS"
+          # An empty list would run no iterations and pass having read nothing.
+          if [ -z "$RESULTS" ]; then echo "::error::No needed job results to read"; exit 1; fi
+          for result in $RESULTS; do
+            if [ "$result" != "success" ]; then
+              echo "::error::A needed job reported $result"
+              exit 1
+            fi
+          done
