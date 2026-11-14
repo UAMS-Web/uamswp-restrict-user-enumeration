@@ -9,8 +9,8 @@ name: CI
 # `composer test:unit`. The PHPUnit Integration and kill-switch suites need MySQL and a WordPress
 # core, so they run locally, not in this workflow. `phpcs` stays off: the Composer script
 # `lint` runs it and the chain's own copy needs a script this repository does not define.
-# `download-archive` stays off until the keep-list in `.gitattributes` exists
-# (UAMS-Web/uamswp-restrict-user-enumeration#18).
+# `download-archive` runs the synced `check-download-archive.mjs` against the keep-list in
+# `.gitattributes`, so a path that is not the plugin cannot reach the GitHub download unnoticed.
 #
 # The `guard` job is the one check the chain does not cover: it refuses a tracked file that
 # could hold a secret or personal data. It runs beside the call and is listed in the `needs:` of `CI`.
@@ -55,6 +55,8 @@ jobs:
       floor-lint: true
       floor-lint-php: '8.2'
       floor-lint-command: php -l uamswp-restrict-user-enumeration.php
+      download-archive: true
+      download-archive-command: node .claude/skills/download-archive-check/check-download-archive.mjs
 
   # Refuses a tracked file that could hold a secret or personal data. The same list is in
   # `.githooks/pre-commit`; keep the two in step.
