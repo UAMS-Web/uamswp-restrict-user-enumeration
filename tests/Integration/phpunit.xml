@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="bootstrap.php"
+         backupGlobals="false"
+         colors="true"
+         convertErrorsToExceptions="true"
+         convertNoticesToExceptions="true"
+         convertWarningsToExceptions="true"
+         beStrictAboutTestsThatDoNotTestAnything="true">
+    <!--
+        The Integration suite, on PHPUnit 9.6 from this directory's own Composer setup,
+        because WordPress' test suite supports PHPUnit 9 only. Paths here are relative
+        to this file. Run it from the repository root with `composer test:integration`.
+
+        These 79 tests pin FR1 through FR7, including the two-gate REST enforcement.
+        The kill-switch suite (FR5) is excluded here and runs from killswitch/phpunit.xml,
+        because UAMSWP_RUE_DISABLE is read when the plugin file is first included and a
+        constant cannot be undefined afterward, so the two states need two processes.
+
+        PHPUnit 9 names the coverage block <coverage><include>; PHPUnit 10 and later,
+        and the root's Pest, name it <source><include>.
+    -->
+    <testsuites>
+        <testsuite name="Integration">
+            <directory prefix="test-" suffix=".php">.</directory>
+            <exclude>./killswitch</exclude>
+            <exclude>./vendor</exclude>
+        </testsuite>
+    </testsuites>
+    <coverage>
+        <include>
+            <file>../../uamswp-restrict-user-enumeration.php</file>
+        </include>
+    </coverage>
+</phpunit>

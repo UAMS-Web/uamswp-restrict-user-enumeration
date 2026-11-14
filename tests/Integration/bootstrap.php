@@ -3,12 +3,26 @@
 /**
  * Integration bootstrap: boots WordPress through wp-phpunit.
  *
- * Required by tests/bootstrap.php, after Composer's autoloader, only in the
- * Integration process. Configuration comes from WP_TESTS_* environment
+ * tests/Integration/phpunit.xml's bootstrap. The Integration suite has its own
+ * Composer setup in this directory (PHPUnit 9.6, wp-phpunit, the polyfills),
+ * separate from the root's Pest 5, so this file loads that setup's autoloader
+ * and never the root's. Configuration comes from WP_TESTS_* environment
  * variables, read in tests/Integration/wp-tests-config.php.
  */
 
 declare(strict_types=1);
+
+if (! is_readable(__DIR__.'/vendor/autoload.php')) {
+    fwrite(
+        STDERR,
+        PHP_EOL."Refusing to run: the Integration suite's own Composer setup is not installed.".PHP_EOL
+        .'Run `composer setup:integration` (or `composer install` in tests/Integration) first.'.PHP_EOL.PHP_EOL
+    );
+
+    exit(1);
+}
+
+require_once __DIR__.'/vendor/autoload.php';
 
 /*
  * Locate WordPress. Unset, WP_TESTS_ABSPATH defaults to the install this
@@ -84,6 +98,10 @@ tests_add_filter('muplugins_loaded', static function () {
 });
 
 require $wpPhpunit.'/includes/bootstrap.php';
+
+// The REST test case and its spy server, then the helper the author-query tests use.
+require_once $wpPhpunit.'/includes/testcase-rest-api.php';
+require_once __DIR__.'/class-uamswp-rue-redirect-exception.php';
 
 require_once dirname(__DIR__).'/Support/IntegrationTestCase.php';
 

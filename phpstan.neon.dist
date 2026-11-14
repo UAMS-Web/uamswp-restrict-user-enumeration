@@ -63,10 +63,8 @@ parameters:
     excludePaths:
         analyseAndScan:
             - tests
-            - tests-legacy
             - vendor
             - tests
-            - tests-legacy
 
     # Filled: the directories and files holding first-party PHP, including
     # the plugin header file at the root. Include tests: test bugs are real

@@ -1,30 +1,29 @@
-<?xml version="1.0"?>
-<!--
-	The two suites of the shared harness. Each runs in its own process, and
-	tests/bootstrap.php decides which one it is in from the arguments: the
-	Integration suite boots a real WordPress through wp-phpunit, the Unit suite
-	mocks WordPress per test with Brain Monkey and boots nothing.
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true"
+         failOnWarning="true"
+         failOnRisky="true"
+         failOnEmptyTestSuite="true"
+         beStrictAboutOutputDuringTests="true">
+    <!--
+        The Unit suite only, on Pest 5. No WordPress, no database: WordPress functions
+        are mocked with Brain Monkey.
 
-	The behavioral suite inherited from before the reshape lives in
-	tests-legacy/, under its own config, because it needs a third bootstrap
-	(the WordPress test library) and PHPUnit takes one bootstrap per file. See
-	tests-legacy/phpunit.xml.dist, and composer.json's `test`.
--->
-<phpunit
-	bootstrap="tests/bootstrap.php"
-	backupGlobals="false"
-	colors="true"
-	convertErrorsToExceptions="true"
-	convertNoticesToExceptions="true"
-	convertWarningsToExceptions="true"
-	beStrictAboutTestsThatDoNotTestAnything="true"
-	>
-	<testsuites>
-		<testsuite name="Unit">
-			<directory suffix="Test.php">./tests/Unit</directory>
-		</testsuite>
-		<testsuite name="Integration">
-			<directory suffix="Test.php">./tests/Integration</directory>
-		</testsuite>
-	</testsuites>
+        The Integration suite is not here. It runs in its own process from its own
+        Composer setup, tests/Integration/composer.json and tests/Integration/phpunit.xml,
+        on PHPUnit 9.6 (composer test:integration), and the FR5 kill-switch suite runs
+        from tests/Integration/killswitch/phpunit.xml (composer test:killswitch).
+    -->
+    <testsuites>
+        <testsuite name="Unit">
+            <directory suffix="Test.php">./tests/Unit</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <file>./uamswp-restrict-user-enumeration.php</file>
+        </include>
+    </source>
 </phpunit>
