@@ -10,38 +10,37 @@
         "brain/monkey": "^2.7",
         "dealerdirect/phpcodesniffer-composer-installer": "^1.2",
         "laravel/pint": "^1.32",
+        "pestphp/pest": "^5.3",
         "php-stubs/wordpress-stubs": "6.8",
         "php-stubs/wp-cli-stubs": "^2.12",
         "phpcompatibility/phpcompatibility-wp": "^2.1",
         "phpstan/phpstan": "^2.2",
-        "phpunit/phpunit": "^9.6",
         "rector/rector": "^2.6",
         "squizlabs/php_codesniffer": "^3.9",
         "szepeviktor/phpstan-wordpress": "^2.0",
-        "wp-coding-standards/wpcs": "^3.4",
-        "wp-phpunit/wp-phpunit": "~7.1.0",
-        "yoast/phpunit-polyfills": "^4.0"
+        "wp-coding-standards/wpcs": "^3.4"
     },
     "config": {
         "allow-plugins": {
             "dealerdirect/phpcodesniffer-composer-installer": true,
+            "pestphp/pest-plugin": true,
             "phpstan/extension-installer": true
         },
         "platform": {
-            "php": "8.4"
+            "php": "8.4.27"
         },
         "sort-packages": true
     },
     "scripts": {
+        "setup:integration": "@composer install --working-dir=tests/Integration",
         "test": [
             "@test:unit",
-            "@test:legacy",
+            "@test:integration",
             "@test:killswitch"
         ],
-        "test:unit": "phpunit --testsuite=Unit",
-        "test:integration": "phpunit --testsuite=Integration",
-        "test:legacy": "phpunit -c tests-legacy/phpunit.xml.dist",
-        "test:killswitch": "phpunit -c tests-legacy/killswitch/phpunit.xml.dist",
+        "test:unit": "pest",
+        "test:integration": "@php tests/Integration/vendor/bin/phpunit --configuration tests/Integration/phpunit.xml",
+        "test:killswitch": "@php tests/Integration/vendor/bin/phpunit --configuration tests/Integration/killswitch/phpunit.xml",
         "lint": "phpcs",
         "lint:fix": "phpcbf",
         "stan": "phpstan analyse --no-progress --memory-limit=2G",
@@ -53,9 +52,11 @@
         "test:pint": "pint --test"
     },
     "scripts-descriptions": {
-        "test": "Run both suites, each in its own process, so the Unit suite never sees WordPress.",
-        "test:unit": "Run the suite that needs no WordPress and no database.",
-        "test:integration": "Run the suite that boots WordPress through wp-phpunit against the test database."
+        "setup:integration": "Install the Integration suite's own Composer setup (PHPUnit 9.6, wp-phpunit, the polyfills).",
+        "test": "Run the Unit suite, the Integration suite and the kill-switch suite, each in its own process, so the Unit suite never sees WordPress.",
+        "test:unit": "Run the Pest suite that needs no WordPress and no database.",
+        "test:integration": "Run the PHPUnit 9.6 suite that boots WordPress through wp-phpunit against the test database.",
+        "test:killswitch": "Run the FR5 kill-switch tests in their own process, with UAMSWP_RUE_DISABLE defined before the plugin loads."
     },
     "autoload-dev": {
         "psr-4": {

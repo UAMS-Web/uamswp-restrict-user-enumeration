@@ -113,16 +113,22 @@ add_action( 'uamswp_rue_blocked', function ( $vector, $request ) {
 
 ## Tests
 
-85 tests over two suites. The kill switch needs its own process, because
-`UAMSWP_RUE_DISABLE` is read when the file is first included and a constant
-cannot be undefined afterwards.
+90 tests over three suites: 5 Unit tests on Pest 5 with no WordPress, and 85
+behavioral tests (79 Integration, 6 kill switch) on PHPUnit 9.6 over a real
+WordPress. The kill switch needs its own process, because `UAMSWP_RUE_DISABLE`
+is read when the file is first included and a constant cannot be undefined
+afterwards. The two PHPUnit suites have their own Composer setup under
+`tests/Integration/`, because WordPress' test suite supports PHPUnit 9 only.
 
 ```bash
 composer install
-bin/install-wp-tests.sh wordpress_test root '' 127.0.0.1 latest
-composer test        # both suites
-composer lint        # PHPCS, WordPress ruleset
+composer setup:integration      # once
+mysql -u root -h 127.0.0.1 -e 'CREATE DATABASE IF NOT EXISTS uamswp_rue_tests'
+WP_TESTS_ABSPATH=/path/to/wordpress composer test   # all three suites
+composer lint                   # PHPCS, WordPress ruleset
 ```
+
+The Unit suite alone runs with `vendor/bin/pest` (the same as `composer test:unit`).
 
 Verified green on **WP 6.4.12, 6.8.10, 7.0.6 and 7.1.2, single-site and
 multisite**: 16 combinations, 85 tests and 221 assertions each. 6.8.10 and
@@ -301,9 +307,9 @@ read, `tests/` and the tool configs are for whoever changes the plugin.
 | `docs/AUDIT.md` | | Spec section 8, done before the code. Holds the pre-deploy baselines and what else already blocks these routes. |
 | `docs/ACF-BUG-REPORT.md` | | The upstream ACF bug that made two gates necessary, written up for WP Engine. |
 | `bin/acceptance.sh` | | Spec section 5. Run from a laptop against each site after deploy. |
-| `bin/install-wp-tests.sh` | | Sets up the WordPress test suite for local development. |
-| `tests/` | | Main suite. |
-| `tests/killswitch/` | | FR5, with its own phpunit config because it needs its own process. |
+| `tests/Unit/` | | Pest unit tests, no WordPress. |
+| `tests/Integration/` | | The behavioral suite on PHPUnit 9.6 over real WordPress, with its own Composer setup. |
+| `tests/Integration/killswitch/` | | FR5, with its own phpunit config because it needs its own process. |
 | `composer.json`, `phpcs.xml.dist`, `phpunit.xml.dist` | | Tooling. |
 
 Nothing outside the first row should ever reach a server. `wp-content/` is

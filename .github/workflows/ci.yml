@@ -4,9 +4,10 @@ name: CI
 #
 # The lint, static-analysis and unit chain is the shared one, `UAMS-Web/uams-ci-workflows`,
 # called by the `checks` job, so this repository carries no copy of it that drifts. The call
-# runs on Linux only, leaves mutation testing off (the suite is PHPUnit, not Pest, until
-# UAMS-Web/uamswp-restrict-user-enumeration#8 and #3), parses the plugin file under its declared floor,
-# and runs the Unit suite as `composer test:unit`. `phpcs` stays off: the Composer script
+# runs on Linux only, leaves mutation testing off (until UAMS-Web/uamswp-restrict-user-enumeration#28),
+# parses the plugin file under its declared floor, and runs the Pest Unit suite as
+# `composer test:unit`. The PHPUnit Integration and kill-switch suites need MySQL and a WordPress
+# core, so they run locally, not in this workflow. `phpcs` stays off: the Composer script
 # `lint` runs it and the chain's own copy needs a script this repository does not define.
 # `download-archive` stays off until the keep-list in `.gitattributes` exists
 # (UAMS-Web/uamswp-restrict-user-enumeration#18).

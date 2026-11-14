@@ -20,31 +20,35 @@ The BigScoots-hosted installs give no CLI, so nothing here may assume one. Deplo
 
 ```bash
 composer install
-composer test   # Unit, Legacy and the kill switch
+composer setup:integration   # once: the Integration suite's own Composer setup
+composer test   # Unit, Integration and the kill switch
 composer lint   # PHPCS, security sniffs
 ```
 
-Three suites, in two configurations, because PHPUnit takes one bootstrap per configuration file and each suite needs a different one:
+The Unit suite alone runs with `vendor/bin/pest` (the same as `composer test:unit`).
 
-| Suite | Config | Bootstrap | What it is |
+Three suites in two Composer setups, because WordPress' test suite supports PHPUnit 9 only and cannot install beside the PHPUnit 13 that Pest 5 runs on:
+
+| Suite | Runs on | Config | What it is |
 | --- | --- | --- | --- |
-| `Unit` | `phpunit.xml.dist` | Brain Monkey, no WordPress | the shared harness, where new tests go |
-| `Integration` | `phpunit.xml.dist` | wp-phpunit, real WordPress | empty so far, opt-in, see below |
-| `Legacy` | `tests-legacy/phpunit.xml.dist` | the WordPress test library | 79 tests pinning FR1 through FR7 |
-| kill switch | `tests-legacy/killswitch/phpunit.xml.dist` | its own process | 6 tests, see below |
+| `Unit` | Pest 5, the root `composer.json` | `phpunit.xml.dist` | Brain Monkey, no WordPress; where new tests go |
+| `Integration` | PHPUnit 9.6, `tests/Integration/composer.json` | `tests/Integration/phpunit.xml` | 79 tests over real WordPress through wp-phpunit, pinning FR1 through FR7 |
+| kill switch | PHPUnit 9.6, the same setup | `tests/Integration/killswitch/phpunit.xml` | 6 tests, its own process |
 
-`composer test` runs Unit, Legacy and the kill switch: 86 tests. **Keep the Legacy suite in it until #8 migrates those tests to Pest.** They are what gates the plugin's behavior on four production installs, and a `composer test` that reached only the Unit suite would pass on one smoke test. PHPUnit 9.6 has no fail-on-empty-suite option, so the guard is structural rather than a flag.
+`composer test` runs all three: 90 tests. **Keep the Integration and kill-switch suites in it.** They are what gates the plugin's behavior on four production installs, and a `composer test` that reached only the Unit suite would pass on a handful of header checks. The Integration classes stay PHPUnit 9 classes and are not converted to Pest.
 
 The kill switch needs its own process: `UAMSWP_RUE_DISABLE` is read when the plugin file is first included and a PHP constant cannot be undefined afterward.
 
-`test:integration` is not in `composer test` because `tests/Integration/` holds no tests yet and the suite refuses without a WordPress to boot. It locates one through `WP_TESTS_ABSPATH`, defaulting to the install this checkout sits inside:
+The Integration and kill-switch suites boot WordPress through wp-phpunit and need MySQL. They locate a WordPress through `WP_TESTS_ABSPATH`, defaulting to the install this checkout sits inside, and refuse to run against the database that install uses (the test installer drops every table it finds). The database `uamswp_rue_tests` must exist:
 
 ```bash
-wp core download --path=/tmp/wordpress
+mysql -u root -h 127.0.0.1 -e 'CREATE DATABASE IF NOT EXISTS uamswp_rue_tests'
+wp core download --path=/tmp/wordpress   # or any WordPress core copy
 WP_TESTS_ABSPATH=/tmp/wordpress composer test:integration
+WP_TESTS_ABSPATH=/tmp/wordpress composer test:killswitch
 ```
 
-The Legacy suite uses the older arrangement instead: `bin/install-wp-tests.sh` puts the WordPress test library under the system temp directory, found through `WP_TESTS_DIR`. macOS clears that directory periodically, so when the Legacy suite suddenly cannot run, re-run the installer before looking for anything subtler. The MySQL databases survive; only the core downloads go. The two mechanisms coexist until the Legacy suite retires with #8.
+Connection settings come from `WP_TESTS_DB_NAME`, `WP_TESTS_DB_USER`, `WP_TESTS_DB_PASSWORD` and `WP_TESTS_DB_HOST`, read in `tests/Integration/wp-tests-config.php`. A core copy kept under the system temp directory is cleared by macOS from time to time; when the suites suddenly cannot find WordPress, download it again before looking for anything subtler.
 
 ### Verifying a deploy
 

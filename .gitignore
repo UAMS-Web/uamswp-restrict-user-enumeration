@@ -3,7 +3,8 @@
 .phpcs.cache
 .phpunit.result.cache
 /phpunit.xml
-/tests/killswitch/phpunit.xml
+/tests/Integration/vendor/
+/tests/Integration/composer.lock
 /phpcs.xml
 .DS_Store
 
