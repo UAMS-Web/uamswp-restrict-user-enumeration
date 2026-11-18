@@ -227,12 +227,14 @@ This is not hypothetical: **27 of the 32 installs are on WP 7.0.6 or 7.1.2
 today**, so shipping FR1 literally would have answered 500 instead of 401 on
 most of the estate from the first deploy.
 
-**2. The declared floor is WP 5.5 and, since the organization's WordPress standard, PHP 8.2 (section 4).**
+**2. The declared floor is WP 6.8 and PHP 8.2, both the organization's WordPress standard (section 4).**
 
 Section 4 states those minimums and asks for them to be confirmed against the
-oldest install. The WordPress dependency was removed rather than guessed at: the
-newest API the plugin uses is `wp_sitemaps_add_provider` (WP 5.5), and
-`rest_convert_error_to_response` is called behind `function_exists`. The PHP
+oldest install. The newest API the plugin uses is `wp_sitemaps_add_provider`
+(WP 5.5), and `rest_convert_error_to_response` (WP 5.7) is called behind
+`function_exists`, so the code itself would run on 5.5. The header declared 5.5
+until the organization standard set a WordPress floor of 6.8, which the oldest
+production install (6.8.12) meets (UAMS-Web/uamswp-restrict-user-enumeration#85). The PHP
 floor was 7.1 until the organization standard (UAMS-Web/uams-claude-skills#125)
 set 8.2 for every WordPress repository, which is the oldest PHP read in the
 estate; the code itself needs nothing newer than PHP 7.1 syntax, and a floor lint
