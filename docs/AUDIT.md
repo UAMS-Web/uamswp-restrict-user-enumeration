@@ -228,7 +228,8 @@ The real floor is **WP 5.5**, which is what the plugin header declared at the
 time of this audit, along with `Requires PHP: 7.0`. The header now declares the
 organization's floors, WP 6.8 and PHP 8.2 (UAMS-Web/uamswp-restrict-user-enumeration#85). Below 5.5 there are no core sitemaps to remove and the
 filter simply never fires, so the plugin still does the other three jobs. This
-is a deliberate deviation from spec section 4 and is called out in the README.
+is a deliberate deviation from spec section 4 and is called out on the wiki's
+Deviations from the spec page (`docs/wiki/`).
 
 Verified by running the full suite against **WP 6.4.12, 6.8.10, 7.0.6 and
 7.1.2**, each single-site and multisite: 16 runs, 66 tests and 170 assertions
@@ -261,7 +262,8 @@ WordPress 7.0 or later.
 This was reproduced by the batch test against WP 7.1.2 before the fix. The
 plugin returns the already-converted response instead, which is byte-identical
 on the wire on every other path. FR1 asks for a `WP_Error`; the deviation and
-the reason are documented at the return statement and in the README.
+the reason are documented at the return statement and on the wiki's Deviations
+from the spec page (`docs/wiki/`).
 
 **This is live, not forward-looking.** The version sweep in section 3 puts 27
 of the 32 installs on WP 7.0.6 or 7.1.2, so most of the estate has the
@@ -343,7 +345,7 @@ which is why Sentinel reads its constants from
 The kill switch still works, it just needs somewhere to live.
 `wp_get_mu_plugins()` sorts the directory before including anything, so an
 mu-plugin named with a leading digit is guaranteed to load first and can define
-the constant. The README has the file. Neither route needs a shell.
+the constant. The wiki's Rolling back page (`docs/wiki/`) has the file. Neither route needs a shell.
 
 ---
 
