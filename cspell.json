@@ -1,0 +1,6 @@
+{
+  "version": "0.2",
+  "language": "en-US",
+  "ignorePaths": ["vendor/**", "tests/Integration/vendor/**", ".claude/**", ".agents/**", ".cursor/**", "composer.lock"],
+  "words": ["uamswp", "oembed", "killswitch"]
+}

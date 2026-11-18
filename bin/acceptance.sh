@@ -117,7 +117,7 @@ check_batch() {
 			;;
 		5*)
 			# A WP_Error returned from rest_pre_dispatch is a TypeError here on
-			# WP 7.0+. See the README, "Deviations from the spec".
+			# WP 7.0+. See the wiki page "Deviations from the spec" (docs/wiki/).
 			record fail "batch /wp/v2/users" "HTTP ${code}: fatal in the batch handler, not a 401"
 			;;
 		*)
