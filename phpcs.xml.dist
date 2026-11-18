@@ -25,6 +25,11 @@
     <exclude-pattern>vendor/*</exclude-pattern>
     <exclude-pattern>node_modules/*</exclude-pattern>
     <exclude-pattern>tests/*</exclude-pattern>
+    <!-- The synced agent folders: CLI scripts from UAMS-Web/uams-claude-skills,
+         not WordPress output, and not edited here (#90). -->
+    <exclude-pattern>.claude/*</exclude-pattern>
+    <exclude-pattern>.agents/*</exclude-pattern>
+    <exclude-pattern>.cursor/*</exclude-pattern>
 
     <arg name="extensions" value="php"/>
     <arg value="sp"/>
