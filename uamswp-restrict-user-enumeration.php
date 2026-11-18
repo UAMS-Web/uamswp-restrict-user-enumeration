@@ -8,7 +8,7 @@ declare(strict_types=1);
  * Version:           1.2.0
  * Author:            UAMS Web Services
  * Author URI:        https://communications.uams.edu/web/
- * Requires at least: 5.5
+ * Requires at least: 6.8
  * Requires PHP:      8.2
  * License:           GPL-2.0-or-later
  *

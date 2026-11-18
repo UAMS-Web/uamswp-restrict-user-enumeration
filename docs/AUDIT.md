@@ -224,8 +224,9 @@ The plugin was written so nothing rests on either answer:
 | `wp_sitemaps_add_provider` | WP 5.5 |
 | `rest_convert_error_to_response` | WP 5.7, called behind `function_exists` |
 
-The real floor is **WP 5.5**, which is what the plugin header declares, along
-with `Requires PHP: 7.0`. Below 5.5 there are no core sitemaps to remove and the
+The real floor is **WP 5.5**, which is what the plugin header declared at the
+time of this audit, along with `Requires PHP: 7.0`. The header now declares the
+organization's floors, WP 6.8 and PHP 8.2 (UAMS-Web/uamswp-restrict-user-enumeration#85). Below 5.5 there are no core sitemaps to remove and the
 filter simply never fires, so the plugin still does the other three jobs. This
 is a deliberate deviation from spec section 4 and is called out in the README.
 
